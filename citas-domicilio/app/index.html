@@ -3,22 +3,191 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Citas a Domicilio</title>
-  <link rel="stylesheet" href="assets/styles.css" />
+  <title>Pacientes</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 24px; }
+    h1 { margin: 0 0 16px; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    label { display: block; font-size: 12px; color: #444; margin-bottom: 6px; }
+    input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
+    button { padding: 10px 14px; border: 0; border-radius: 10px; cursor: pointer; }
+    button.primary { background: #111; color: #fff; }
+    button.secondary { background: #eee; }
+    .row { display: flex; gap: 10px; align-items: center; }
+    .card { border: 1px solid #e6e6e6; border-radius: 14px; padding: 16px; margin: 14px 0; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+    th { font-size: 12px; color: #555; }
+    .muted { color: #666; font-size: 12px; }
+    .error { color: #b00020; }
+    .ok { color: #0a7a2f; }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
 </head>
 <body>
-  <h1>Citas a Domicilio</h1>
-  <p>Deploy OK ✅</p>
+  <h1>Pacientes</h1>
+  <div class="muted">API: <code>/api/paciente</code></div>
 
-  <h2>Prueba API</h2>
-  <button id="btn">Probar /api/health</button>
-  <pre id="out"></pre>
+  <div class="card">
+    <h2 style="margin:0 0 12px;">Nuevo paciente</h2>
 
-  <script>
-    document.getElementById("btn").addEventListener("click", async () => {
-      const res = await fetch("/api/health");
-      document.getElementById("out").textContent = await res.text();
-    });
-  </script>
+    <form id="frm" autocomplete="off">
+      <div class="grid">
+        <div>
+          <label for="ci">CI (10 dígitos)</label>
+          <input id="ci" name="ci" inputmode="numeric" maxlength="10" placeholder="0912345678" required />
+        </div>
+        <div>
+          <label for="nombre">Nombre</label>
+          <input id="nombre" name="nombre" placeholder="Juan" required />
+        </div>
+        <div>
+          <label for="apellido">Apellido</label>
+          <input id="apellido" name="apellido" placeholder="Perez" required />
+        </div>
+        <div>
+          <label for="telefono">Teléfono</label>
+          <input id="telefono" name="telefono" inputmode="tel" placeholder="0999999999" />
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <button class="primary" type="submit">Guardar</button>
+        <button class="secondary" type="button" id="btnRefresh">Refrescar</button>
+        <span id="msg" class="muted"></span>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content: space-between;">
+      <h2 style="margin:0;">Listado</h2>
+      <span class="muted" id="count"></span>
+    </div>
+
+    <div style="overflow:auto; margin-top:10px;">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>CI</th>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Teléfono</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="5" class="muted">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  function setMsg(text, kind = "muted") {
+    const el = $("msg");
+    el.className = kind;
+    el.textContent = text;
+  }
+
+  function onlyDigits10(value) {
+    const d = String(value).replace(/\D/g, "");
+    return d.slice(0, 10);
+  }
+
+  async function loadPacientes() {
+    setMsg("Cargando...", "muted");
+    const tbody = $("tbody");
+    tbody.innerHTML = `<tr><td colspan="5" class="muted">Cargando...</td></tr>`;
+
+    try {
+      const res = await fetch("/api/paciente", { method: "GET" });
+      if (!res.ok) throw new Error("GET /api/paciente falló: " + res.status);
+
+      const data = await res.json();
+      $("count").textContent = `${data.length} registro(s)`;
+
+      if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="muted">Sin registros</td></tr>`;
+        setMsg("Listo.", "ok");
+        return;
+      }
+
+      tbody.innerHTML = data.map(p => `
+        <tr>
+          <td>${p.id ?? ""}</td>
+          <td>${p.ci ?? ""}</td>
+          <td>${p.nombre ?? ""}</td>
+          <td>${p.apellido ?? ""}</td>
+          <td>${p.telefono ?? ""}</td>
+        </tr>
+      `).join("");
+
+      setMsg("Listo.", "ok");
+    } catch (err) {
+      console.error(err);
+      tbody.innerHTML = `<tr><td colspan="5" class="error">Error cargando datos</td></tr>`;
+      setMsg(String(err.message || err), "error");
+    }
+  }
+
+  $("ci").addEventListener("input", (e) => {
+    e.target.value = onlyDigits10(e.target.value);
+  });
+
+  $("btnRefresh").addEventListener("click", loadPacientes);
+
+  $("frm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const payload = {
+      ci: onlyDigits10($("ci").value),
+      nombre: $("nombre").value.trim(),
+      apellido: $("apellido").value.trim(),
+      telefono: $("telefono").value.trim(),
+    };
+
+    if (payload.ci.length !== 10) {
+      setMsg("La CI debe tener 10 dígitos.", "error");
+      $("ci").focus();
+      return;
+    }
+    if (!payload.nombre || !payload.apellido) {
+      setMsg("Nombre y Apellido son obligatorios.", "error");
+      return;
+    }
+
+    setMsg("Guardando...", "muted");
+
+    try {
+      const res = await fetch("/api/paciente", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const out = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(out.error ? out.error : ("POST falló: " + res.status));
+      }
+
+      setMsg(`Guardado. ID = ${out.id}`, "ok");
+      e.target.reset();
+      await loadPacientes();
+      $("ci").focus();
+    } catch (err) {
+      console.error(err);
+      setMsg(String(err.message || err), "error");
+    }
+  });
+
+  // Carga inicial
+  loadPacientes();
+</script>
 </body>
 </html>
