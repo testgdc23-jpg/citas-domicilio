@@ -534,6 +534,19 @@
       setMsg($("msgCita"), "No pude cargar pacientes/direcciones. Revisa /api/paciente y /api/direccion.", "warn");
     }
   })();
+
+  (function () {
+    const p = location.pathname.replace(/\/+$/, "");
+
+    if (p === "/citas" && location.hash !== "#citas") {
+      location.hash = "#citas";
+    }
+    if (p === "/pagos" && location.hash !== "#pagos") {
+      location.hash = "#pagos";
+    }
+  })();
+  
 </script>
 </body>
 </html>
+
