@@ -75,7 +75,7 @@
 
   function estadoOptions(actual) {
     return ESTADOS.map(s =>
-      `<option value="${s}" ${String(actual)===s ? "selected" : ""}>${s}</option>`
+      `<option value="${s}" ${actual===s ? "selected" : ""}>${s}</option>`
     ).join("");
   }
 
@@ -86,114 +86,76 @@
       return;
     }
 
-    setMsg("Cargando...", "ok");
+    setMsg("Cargando...");
     const tbody = $("tbody");
     tbody.innerHTML = `<tr><td colspan="7" class="small">Cargando...</td></tr>`;
 
-    try {
-      const res = await fetch(`/api/cita?fecha=${encodeURIComponent(fecha)}`);
-      const data = await res.json();
+    const res = await fetch(`/api/cita?fecha=${fecha}`);
+    const data = await res.json();
 
-      if (!res.ok) {
-        tbody.innerHTML = `<tr><td colspan="7" class="small">Error al cargar.</td></tr>`;
-        setMsg(data.error || "Error al cargar citas.", "err");
-        return;
-      }
-
-      if (!Array.isArray(data) || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="small">No hay citas para esta fecha.</td></tr>`;
-        setMsg("Sin resultados.", "ok");
-        return;
-      }
-
-      tbody.innerHTML = "";
-      for (const c of data) {
-        const tr = document.createElement("tr");
-
-        const pacienteTxt = `${c.nombre || ""} ${c.apellido || ""} (${c.ci || ""})`.trim();
-        const dirTxt = `${c.direccion || ""} - ${c.ciudad || ""} (${c.zona || ""})`.trim();
-        const fhTxt = `${c.fecha || ""} ${c.hora || ""}`.trim();
-
-        tr.innerHTML = `
-          <td>${c.id}</td>
-          <td>${escapeHtml(pacienteTxt)}</td>
-          <td>${escapeHtml(dirTxt)}</td>
-          <td>${escapeHtml(fhTxt)}</td>
-          <td>${escapeHtml(c.sintomas || "")}</td>
-          <td>
-            <select class="estadoSel" data-cita-id="${c.id}">
-              ${estadoOptions(c.estado)}
-            </select>
-          </td>
-          <td>
-            <button class="btn btnGuardar" data-cita-id="${c.id}">Guardar estado</button>
-          </td>
-        `;
-
-        tbody.appendChild(tr);
-      }
-
-      // conectar botones
-      document.querySelectorAll(".btnGuardar").forEach(btn => {
-        btn.addEventListener("click", () => guardarEstado(btn));
-      });
-
-      setMsg(`Citas cargadas: ${data.length}`, "ok");
-    } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="7" class="small">Error.</td></tr>`;
-      setMsg(String(e?.message || e), "err");
+    if (!res.ok) {
+      setMsg(data.error || "Error", "err");
+      return;
     }
+
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="7" class="small">No hay citas.</td></tr>`;
+      setMsg("Sin resultados");
+      return;
+    }
+
+    tbody.innerHTML = "";
+    for (const c of data) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${c.id}</td>
+        <td>${c.nombre} ${c.apellido} (${c.ci})</td>
+        <td>${c.direccion} ${c.ciudad} (${c.zona})</td>
+        <td>${c.fecha} ${c.hora}</td>
+        <td>${c.sintomas || ""}</td>
+        <td>
+          <select data-id="${c.id}">
+            ${estadoOptions(c.estado)}
+          </select>
+        </td>
+        <td>
+          <button onclick="guardar(${c.id})">Guardar</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    setMsg(`Citas: ${data.length}`);
   }
 
-  async function guardarEstado(btn) {
-    const citaId = Number(btn.getAttribute("data-cita-id"));
-    const sel = document.querySelector(`select.estadoSel[data-cita-id="${citaId}"]`);
+  async function guardar(id) {
+    const sel = document.querySelector(`select[data-id="${id}"]`);
     const estado = sel.value;
 
-    btn.disabled = true;
-    const oldText = btn.textContent;
-    btn.textContent = "Guardando...";
+    const res = await fetch("/api/cita_estado", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ cita_id: id, estado })
+    });
 
-    try {
-      const res = await fetch("/api/cita_estado", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cita_id: citaId, estado })
-      });
+    const data = await res.json();
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setMsg(data.error || "Error al actualizar estado.", "err");
-        return;
-      }
-
-      setMsg(`Estado actualizado (cita #${citaId}): ${data.estado}`, "ok");
-      // refrescar para ver estado real desde DB
-      await loadCitas();
-    } catch (e) {
-      setMsg(String(e?.message || e), "err");
-    } finally {
-      btn.disabled = false;
-      btn.textContent = oldText;
+    if (!res.ok) {
+      setMsg(data.error || "Error", "err");
+      return;
     }
+
+    setMsg(`Estado actualizado a ${estado}`);
+    loadCitas();
   }
 
-  function escapeHtml(s) {
-    return String(s ?? "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
-  }
-
-  // init
   $("fecha").value = todayISO();
-  $("btnCargar").addEventListener("click", loadCitas);
+  $("btnCargar").onclick = loadCitas;
   loadCitas();
 </script>
 </body>
 </html>
+
+
 
 
