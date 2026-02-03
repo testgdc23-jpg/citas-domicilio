@@ -90,17 +90,11 @@
       </div>
       <div class="nav">
         <a class="btn" href="/app/index.html">⬅️ Menú</a>
-<!-- Enlace a Estado de citas -->
-<a class="btn" href="/app/admin.html#estado">Estado de citas</a>
 
-<!-- Enlace a Citas -->
-<a class="btn" href="/app/admin.html#citas">Citas</a>
+<a class="btn" href="#estado">Estado de citas</a>
+<a class="btn" href="#citas">Citas</a>
+<a class="btn" href="#pagos">Pagos</a>
 
-<!-- Enlace a Pagos -->
-<a class="btn" href="/app/admin.html#pagos">Pagos</a>
-
-<!-- Enlace Pacientes -->
-<a class="btn" href="/app/admin.html#pacientes">Pacientes</a>
         
         <a class="btn" href="/api/health" target="_blank" rel="noopener">🩺 Health</a>
         <span class="pill">Tip: si no refleja, usa <span class="mono">?v=1</span></span>
@@ -555,27 +549,25 @@
   })();
   
 <script>
-  // Espera a que el contenido se haya cargado
-  window.onload = function() {
-    // Si el hash en la URL es #estado, mostramos la sección "Estado de citas"
-    if (location.hash === "#estado") {
-      // Mostrar la sección Estado de citas
-      // (Este es un ejemplo, puedes mostrar la sección correspondiente aquí)
-      alert("Mostrar Estado de citas");
+  // Función para mostrar u ocultar secciones dependiendo del hash
+  function renderRoute() {
+    const hash = location.hash || "#citas";  // Si no hay hash, mostrar "Citas" por defecto
+    document.querySelector("#viewCitas").classList.toggle("hide", hash !== "#citas");
+    document.querySelector("#viewPagos").classList.toggle("hide", hash !== "#pagos");
+    document.querySelector("#viewEstado").classList.toggle("hide", hash !== "#estado");
+  }
 
-    } else if (location.hash === "#citas") {
-      // Mostrar la sección Citas
-      alert("Mostrar Citas");
+  // Llamar a la función cuando cambie el hash
+  window.addEventListener("hashchange", renderRoute);
 
-    } else if (location.hash === "#pagos") {
-      // Mostrar la sección Pagos
-      alert("Mostrar Pagos");
-    }
-  };
+  // Ejecutar la función al cargar la página
+  renderRoute();
 </script>
+
 
 </body>
 </html>
+
 
 
 
