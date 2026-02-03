@@ -1,572 +1,138 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin – Citas a Domicilio</title>
-  <style>
-    :root{
-      --bg1:#070b1a; --bg2:#0b1536; --card:#0f1a3a;
-      --txt:#e8eeff; --muted:#a9b4d8; --line:rgba(255,255,255,.10);
-      --ok:#22c55e; --err:#ef4444; --warn:#f59e0b;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      color:var(--txt);
-      background:
-        radial-gradient(900px 500px at 25% 20%, rgba(92,141,255,.22), transparent 55%),
-        radial-gradient(700px 500px at 70% 75%, rgba(34,211,238,.12), transparent 60%),
-        linear-gradient(180deg, var(--bg1), var(--bg2));
-      min-height:100vh;
-      padding: 22px;
-    }
-    .wrap{max-width:1200px; margin:0 auto;}
-    .top{
-      display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;
-    }
-    h1{margin:0; font-size:34px}
-    .sub{margin:6px 0 0; color:var(--muted); font-size:13px}
-    .nav{
-      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
-    }
-    .btn{
-      appearance:none; border:1px solid var(--line);
-      background:rgba(0,0,0,.22); color:var(--txt);
-      padding:10px 12px; border-radius:12px; cursor:pointer;
-      text-decoration:none; display:inline-flex; gap:8px; align-items:center;
-      font-weight:600; font-size:13px;
-    }
-    .btn:hover{border-color:rgba(255,255,255,.18)}
-    .btn.primary{background:rgba(92,141,255,.22)}
-    .pill{
-      padding:8px 10px; border-radius:999px; border:1px solid var(--line);
-      color:var(--muted); font-size:12px; background:rgba(0,0,0,.20);
-    }
-    .panel{
-      margin-top:16px;
-      border:1px solid var(--line);
-      border-radius:18px;
-      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
-      box-shadow: 0 18px 55px rgba(0,0,0,.40);
-      overflow:hidden;
-    }
-    .ph{padding:14px 16px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:10px}
-    .ph h2{margin:0; font-size:16px}
-    .content{padding:16px}
-    .grid{display:grid; grid-template-columns: 1fr 1fr; gap:14px}
-    @media (max-width: 980px){ .grid{grid-template-columns:1fr} h1{font-size:28px}}
-    .card{
-      border:1px solid var(--line); border-radius:16px; padding:14px;
-      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-    }
-    label{display:block; font-size:12px; color:var(--muted); margin:10px 0 6px}
-    input, select, textarea{
-      width:100%; padding:10px 10px; border-radius:12px;
-      border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.18);
-      color:var(--txt); outline:none;
-    }
-    textarea{min-height:80px; resize:vertical}
-    .row{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
-    .row3{display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px}
-    @media (max-width: 720px){ .row, .row3{grid-template-columns:1fr}}
-    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
-    .msg{margin-top:10px; font-weight:700}
-    .ok{color:var(--ok)} .err{color:var(--err)} .warn{color:var(--warn)}
-    table{width:100%; border-collapse:collapse; margin-top:10px}
-    th, td{border-bottom:1px solid rgba(255,255,255,.10); padding:10px; text-align:left; vertical-align:top}
-    th{color:var(--muted); font-size:12px; font-weight:700}
-    .small{color:var(--muted); font-size:12px}
-    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
-    .hide{display:none !important}
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="top">
-      <div>
-        <h1>Admin</h1>
-        <div class="sub">Citas y Pagos (usa <span class="mono">/api/cita</span>, <span class="mono">/api/pago</span>, <span class="mono">/api/paciente</span>, <span class="mono">/api/direccion</span>, <span class="mono">/api/cita_estado</span>)</div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin – Citas a Domicilio</title>
+    <style>
+      :root {
+        --bg1: #070b1a;
+        --bg2: #0f1a3a;
+        --card: #0f1a3a;
+        --txt: #e8eeff;
+        --muted: #a9b4d8;
+        --line: rgba(255, 255, 255, 0.1);
+        --ok: #22c55e;
+        --err: #ef4444;
+        --warn: #f59e0b;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+        color: var(--txt);
+        background: radial-gradient(900px 500px at 25% 20%, rgba(92, 141, 255, .22), transparent 55%),
+          radial-gradient(700px 500px at 70% 75%, rgba(34, 211, 238, .12), transparent 60%),
+          linear-gradient(180deg, var(--bg1), var(--bg2));
+        min-height: 100vh;
+        padding: 22px;
+      }
+      .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      h1 {
+        margin: 0;
+        font-size: 34px;
+      }
+      .sub {
+        margin: 6px 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .nav {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .btn {
+        background-color: var(--card);
+        color: var(--txt);
+        padding: 10px 15px;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 14px;
+      }
+      .btn:hover {
+        background-color: var(--line);
+      }
+      .hide {
+        display: none;
+      }
+      .panel {
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="top">
+        <div>
+          <h1>Admin</h1>
+          <div class="sub">Citas y Pagos (usa <span class="mono">/api/cita</span>, <span class="mono">/api/pago</span>, <span class="mono">/api/paciente</span>, <span class="mono">/api/direccion</span>, <span class="mono">/api/cita_estado</span>)</div>
+        </div>
+        <div class="nav">
+          <a class="btn" href="/app/index.html">Menú</a>
+          <a class="btn" href="#estado">Estado de citas</a>
+          <a class="btn" href="#citas">Citas</a>
+          <a class="btn" href="#pagos">Pagos</a>
+          <a class="btn" href="/app/estado.html">Ver Estado</a>
+          <a class="btn" href="/api/health" target="_blank" rel="noopener">Health</a>
+        </div>
       </div>
-      <div class="nav">
-        <a class="btn" href="/app/index.html">⬅️ Menú</a>
 
-<a class="btn" href="#estado">Estado de citas</a>
-<a class="btn" href="#citas">Citas</a>
-<a class="btn" href="#pagos">Pagos</a>
+      <!-- =================== Citas =================== -->
+      <div id="viewCitas" class="panel hide">
+        <h2>Citas</h2>
+        <p>Agregar, editar y ver las citas de los pacientes</p>
+      </div>
 
-        
-        <a class="btn" href="/api/health" target="_blank" rel="noopener">🩺 Health</a>
-        <span class="pill">Tip: si no refleja, usa <span class="mono">?v=1</span></span>
+      <!-- =================== Estado =================== -->
+      <div id="viewEstado" class="panel hide">
+        <h2>Estado de Citas</h2>
+        <p>Ver citas por fecha y cambiar estado (Guardar).</p>
+      </div>
+
+      <!-- =================== Pagos =================== -->
+      <div id="viewPagos" class="panel hide">
+        <h2>Pagos</h2>
+        <p>Registrar pago por cita y ver reportes por fecha.</p>
       </div>
     </div>
 
-    <!-- ===================== CITAS ===================== -->
-    <div id="viewCitas" class="panel">
-      <div class="ph">
-        <h2>🗓️ Citas</h2>
-        <div class="small">Ruta: <span class="mono">/api/cita</span></div>
-      </div>
-      <div class="content grid">
-        <div class="card">
-          <h3 style="margin:0 0 6px">Nueva cita</h3>
-          <div class="small">Requiere paciente y dirección. La dirección es por paciente.</div>
-
-          <label>Paciente</label>
-          <select id="c_paciente"></select>
-
-          <label>Dirección (del paciente)</label>
-          <select id="c_direccion"></select>
-
-          <div class="row">
-            <div>
-              <label>Fecha</label>
-              <input id="c_fecha" type="date" />
-            </div>
-            <div>
-              <label>Hora</label>
-              <input id="c_hora" type="time" />
-            </div>
-          </div>
-
-          <label>Síntomas</label>
-          <textarea id="c_sintomas" placeholder="Ej: dolor de cabeza"></textarea>
-
-          <div class="actions">
-            <button class="btn primary" id="btnCrearCita">Agendar cita</button>
-            <button class="btn" id="btnReloadPacDir">Recargar pacientes/direcciones</button>
-          </div>
-
-          <div id="msgCita" class="msg"></div>
-        </div>
-
-        <div class="card">
-          <h3 style="margin:0 0 6px">Listado por fecha</h3>
-          <div class="row">
-            <div>
-              <label>Fecha</label>
-              <input id="c_fecha_list" type="date" />
-            </div>
-            <div style="align-self:end">
-              <button class="btn primary" id="btnListarCitas">Cargar citas</button>
-            </div>
-          </div>
-
-          <div class="small" id="c_total"></div>
-
-          <div style="overflow:auto">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Paciente</th>
-                  <th>Dirección</th>
-                  <th>Fecha/Hora</th>
-                  <th>Estado</th>
-                  <th>Síntomas</th>
-                </tr>
-              </thead>
-              <tbody id="tbCitas">
-                <tr><td colspan="6" class="small">Cargando...</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div id="msgListCitas" class="msg"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===================== PAGOS ===================== -->
-    <div id="viewPagos" class="panel hide">
-      <div class="ph">
-        <h2>💵 Pagos</h2>
-        <div class="small">Ruta: <span class="mono">/api/pago</span></div>
-      </div>
-
-      <div class="content grid">
-        <div class="card">
-          <h3 style="margin:0 0 6px">Registrar pago</h3>
-          <div class="small">Cada cita debería tener 1 pago (tu backend ya valida duplicados).</div>
-
-          <label>ID de cita</label>
-          <input id="p_cita_id" type="number" min="1" placeholder="Ej: 3" />
-
-          <div class="row3">
-            <div>
-              <label>Copago</label>
-              <input id="p_copago" type="number" step="0.01" value="0" />
-            </div>
-            <div>
-              <label>Medicina</label>
-              <input id="p_medicina" type="number" step="0.01" value="0" />
-            </div>
-            <div>
-              <label>Total (auto)</label>
-              <input id="p_total" type="text" value="0.00" readonly />
-            </div>
-          </div>
-
-          <label>Forma de pago</label>
-          <select id="p_forma">
-            <option value="efectivo">efectivo</option>
-            <option value="transferencia">transferencia</option>
-          </select>
-
-          <label>Valor transferido</label>
-          <input id="p_transferido" type="number" step="0.01" value="0" />
-          <div class="small">En efectivo debe ser 0. En transferencia debe ser igual al total.</div>
-
-          <label>Fecha de pago</label>
-          <input id="p_fecha" type="date" />
-
-          <label>Observaciones</label>
-          <input id="p_obs" type="text" placeholder="Opcional" />
-
-          <div class="actions">
-            <button class="btn primary" id="btnGuardarPago">Guardar pago</button>
-          </div>
-
-          <div id="msgPago" class="msg"></div>
-        </div>
-
-        <div class="card">
-          <h3 style="margin:0 0 6px">Reporte de pagos por fecha</h3>
-
-          <div class="row">
-            <div>
-              <label>Fecha</label>
-              <input id="p_fecha_rep" type="date" />
-            </div>
-            <div style="align-self:end">
-              <button class="btn primary" id="btnReportePagos">Cargar pagos</button>
-            </div>
-          </div>
-
-          <div class="small" id="p_totales"></div>
-
-          <div style="overflow:auto">
-            <table>
-              <thead>
-                <tr>
-                  <th>Pago</th>
-                  <th>Cita</th>
-                  <th>Paciente</th>
-                  <th>Fecha/Hora</th>
-                  <th>Forma</th>
-                  <th>Total</th>
-                  <th>Copago</th>
-                  <th>Medicina</th>
-                  <th>Obs</th>
-                </tr>
-              </thead>
-              <tbody id="tbPagos">
-                <tr><td colspan="9" class="small">Cargando...</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div id="msgRepPago" class="msg"></div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-<script>
-  const $ = (id) => document.getElementById(id);
-
-  function setMsg(el, text, cls){
-    el.className = "msg " + (cls || "");
-    el.textContent = text || "";
-  }
-
-  function todayISO(){
-    const d = new Date();
-    const pad = (n) => String(n).padStart(2,"0");
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  }
-
-  // ---------- Navegación hash ----------
-  function renderRoute(){
-    const h = (location.hash || "#citas").toLowerCase();
-    const isPagos = h.startsWith("#pagos");
-    $("viewCitas").classList.toggle("hide", isPagos);
-    $("viewPagos").classList.toggle("hide", !isPagos);
-  }
-  window.addEventListener("hashchange", renderRoute);
-
-  // ---------- PACIENTES + DIRECCIONES ----------
-  async function loadPacientes(){
-    const sel = $("c_paciente");
-    sel.innerHTML = `<option value="">Cargando...</option>`;
-    const res = await fetch("/api/paciente");
-    const data = await res.json();
-    sel.innerHTML = `<option value="">Seleccione...</option>` + data.map(p =>
-      `<option value="${p.id}">${p.id} - ${p.ci || ""} - ${p.nombre || ""} ${p.apellido || ""}</option>`
-    ).join("");
-  }
-
-  async function loadDirecciones(pacienteId){
-    const sel = $("c_direccion");
-    sel.innerHTML = `<option value="">Cargando...</option>`;
-    if(!pacienteId){
-      sel.innerHTML = `<option value="">Seleccione un paciente primero</option>`;
-      return;
-    }
-    const res = await fetch(`/api/direccion?paciente_id=${encodeURIComponent(pacienteId)}`);
-    const data = await res.json();
-    if(!Array.isArray(data) || data.length === 0){
-      sel.innerHTML = `<option value="">Sin direcciones para este paciente</option>`;
-      return;
-    }
-    sel.innerHTML = data.map(d => {
-      const label = `${d.id} - ${d.direccion || ""} - ${d.ciudad || ""} (${d.zona || ""})`;
-      return `<option value="${d.id}">${label}</option>`;
-    }).join("");
-  }
-
-  $("c_paciente").addEventListener("change", (e) => loadDirecciones(e.target.value));
-
-  $("btnReloadPacDir").addEventListener("click", async () => {
-    try{
-      setMsg($("msgCita"), "Recargando...", "warn");
-      await loadPacientes();
-      await loadDirecciones($("c_paciente").value);
-      setMsg($("msgCita"), "OK. Recargado.", "ok");
-    }catch(err){
-      setMsg($("msgCita"), String(err), "err");
-    }
-  });
-
-  // ---------- Crear cita ----------
-  $("btnCrearCita").addEventListener("click", async () => {
-    try{
-      setMsg($("msgCita"), "", "");
-      const paciente_id = Number($("c_paciente").value);
-      const direccion_id = Number($("c_direccion").value);
-      const fecha = $("c_fecha").value;
-      const hora = $("c_hora").value;
-      const sintomas = ($("c_sintomas").value || "").trim() || null;
-
-      if(!paciente_id) return setMsg($("msgCita"), "Selecciona un paciente.", "err");
-      if(!direccion_id) return setMsg($("msgCita"), "Selecciona una dirección.", "err");
-      if(!fecha) return setMsg($("msgCita"), "Selecciona la fecha.", "err");
-      if(!hora) return setMsg($("msgCita"), "Selecciona la hora.", "err");
-
-      const payload = { paciente_id, direccion_id, seguro_id: null, fecha, hora, sintomas };
-
-      const res = await fetch("/api/cita", {
-        method:"POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify(payload)
-      });
-
-      const txt = await res.text();
-      let out = {};
-      try{ out = txt ? JSON.parse(txt) : {}; }catch{ out = {raw: txt}; }
-
-      if(!res.ok){
-        return setMsg($("msgCita"), out.error || txt || "Error creando cita.", "err");
-      }
-      setMsg($("msgCita"), `Cita creada. ID: ${out.id}`, "ok");
-    }catch(err){
-      setMsg($("msgCita"), String(err), "err");
-    }
-  });
-
-  // ---------- Listar citas ----------
-  $("btnListarCitas").addEventListener("click", async () => {
-    try{
-      setMsg($("msgListCitas"), "", "");
-      const fecha = $("c_fecha_list").value;
-      if(!fecha) return setMsg($("msgListCitas"), "Selecciona una fecha.", "err");
-
-      $("tbCitas").innerHTML = `<tr><td colspan="6" class="small">Cargando...</td></tr>`;
-      const res = await fetch(`/api/cita?fecha=${encodeURIComponent(fecha)}`);
-      const data = await res.json();
-
-      $("c_total").textContent = `Citas: ${Array.isArray(data) ? data.length : 0}`;
-
-      if(!Array.isArray(data) || data.length === 0){
-        $("tbCitas").innerHTML = `<tr><td colspan="6" class="small">No hay citas para esa fecha.</td></tr>`;
-        return;
+    <script>
+      // Función para mostrar u ocultar secciones dependiendo del hash
+      function renderRoute() {
+        const hash = location.hash || "#citas";  // Si no hay hash, mostrar "Citas" por defecto
+        document.querySelector("#viewCitas").classList.toggle("hide", hash !== "#citas");
+        document.querySelector("#viewPagos").classList.toggle("hide", hash !== "#pagos");
+        document.querySelector("#viewEstado").classList.toggle("hide", hash !== "#estado");
       }
 
-      $("tbCitas").innerHTML = data.map(c => {
-        const pac = `${c.nombre || ""} ${c.apellido || ""} (${c.ci || ""})`.trim();
-        const dir = `${c.direccion || ""} ${c.ciudad || ""} ${c.zona ? "(" + c.zona + ")" : ""}`.trim();
-        return `<tr>
-          <td>${c.id}</td>
-          <td>${pac}</td>
-          <td>${dir}</td>
-          <td>${c.fecha} ${c.hora}</td>
-          <td>${c.estado || ""}</td>
-          <td>${c.sintomas || ""}</td>
-        </tr>`;
-      }).join("");
-    }catch(err){
-      setMsg($("msgListCitas"), String(err), "err");
-    }
-  });
+      // Llamar a la función cuando cambie el hash
+      window.addEventListener("hashchange", renderRoute);
 
-  // ---------- Pagos: cálculo ----------
-  function updateTotal(){
-    const cop = Number($("p_copago").value || 0);
-    const med = Number($("p_medicina").value || 0);
-    const total = (cop + med);
-    $("p_total").value = total.toFixed(2);
-    // regla de transferencia
-    if($("p_forma").value === "transferencia"){
-      $("p_transferido").value = total.toFixed(2);
-    }else{
-      $("p_transferido").value = "0";
-    }
-  }
-  $("p_copago").addEventListener("input", updateTotal);
-  $("p_medicina").addEventListener("input", updateTotal);
-  $("p_forma").addEventListener("change", updateTotal);
-
-  // ---------- Guardar pago ----------
-  $("btnGuardarPago").addEventListener("click", async () => {
-    try{
-      setMsg($("msgPago"), "", "");
-      const cita_id = Number($("p_cita_id").value);
-      const copago = Number($("p_copago").value || 0);
-      const medicina = Number($("p_medicina").value || 0);
-      const total = Number($("p_total").value || 0);
-      const forma_pago = $("p_forma").value;
-      const valor_transferido = Number($("p_transferido").value || 0);
-      const fecha_pago = $("p_fecha").value;
-      const observaciones = ($("p_obs").value || "").trim() || null;
-
-      if(!cita_id) return setMsg($("msgPago"), "Ingresa el ID de la cita.", "err");
-      if(!fecha_pago) return setMsg($("msgPago"), "Selecciona la fecha de pago.", "err");
-
-      if(forma_pago === "efectivo" && valor_transferido !== 0){
-        return setMsg($("msgPago"), "En efectivo, valor transferido debe ser 0.", "err");
-      }
-      if(forma_pago === "transferencia" && Number(valor_transferido.toFixed(2)) !== Number(total.toFixed(2))){
-        return setMsg($("msgPago"), "En transferencia, valor transferido debe ser igual al total.", "err");
-      }
-
-      const payload = { cita_id, copago, medicina, valor_transferido, forma_pago, fecha_pago, observaciones };
-
-      const res = await fetch("/api/pago", {
-        method:"POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify(payload)
-      });
-
-      const txt = await res.text();
-      let out = {};
-      try{ out = txt ? JSON.parse(txt) : {}; }catch{ out = {raw: txt}; }
-
-      if(!res.ok){
-        return setMsg($("msgPago"), out.error || txt || "Error guardando pago.", "err");
-      }
-      setMsg($("msgPago"), `Pago guardado. ID: ${out.id}`, "ok");
-    }catch(err){
-      setMsg($("msgPago"), String(err), "err");
-    }
-  });
-
-  // ---------- Reporte pagos ----------
-  $("btnReportePagos").addEventListener("click", async () => {
-    try{
-      setMsg($("msgRepPago"), "", "");
-      const fecha = $("p_fecha_rep").value;
-      if(!fecha) return setMsg($("msgRepPago"), "Selecciona una fecha.", "err");
-
-      $("tbPagos").innerHTML = `<tr><td colspan="9" class="small">Cargando...</td></tr>`;
-      const res = await fetch(`/api/pago?fecha=${encodeURIComponent(fecha)}`);
-      const data = await res.json();
-
-      if(!Array.isArray(data) || data.length === 0){
-        $("p_totales").textContent = "Sin pagos para esa fecha.";
-        $("tbPagos").innerHTML = `<tr><td colspan="9" class="small">No hay pagos.</td></tr>`;
-        return;
-      }
-
-      let totalDia = 0, ef = 0, tr = 0;
-      data.forEach(p => {
-        const t = Number(p.total || (Number(p.copago||0)+Number(p.medicina||0)) || 0);
-        totalDia += t;
-        if((p.forma_pago||"") === "efectivo") ef += t; else tr += t;
-      });
-
-      $("p_totales").textContent = `Total día: ${totalDia.toFixed(2)} | Efectivo: ${ef.toFixed(2)} | Transferencia: ${tr.toFixed(2)}`;
-
-      $("tbPagos").innerHTML = data.map(p => {
-        const pac = `${p.nombre || ""} ${p.apellido || ""} (${p.ci || ""})`.trim();
-        const fh = `${p.fecha || ""} ${p.hora || ""}`.trim();
-        const total = Number(p.total || (Number(p.copago||0)+Number(p.medicina||0)) || 0).toFixed(2);
-        return `<tr>
-          <td>${p.id}</td>
-          <td>${p.cita_id}</td>
-          <td>${pac}</td>
-          <td>${fh}</td>
-          <td>${p.forma_pago || ""}</td>
-          <td>${total}</td>
-          <td>${Number(p.copago||0).toFixed(2)}</td>
-          <td>${Number(p.medicina||0).toFixed(2)}</td>
-          <td>${p.observaciones || ""}</td>
-        </tr>`;
-      }).join("");
-    }catch(err){
-      setMsg($("msgRepPago"), String(err), "err");
-    }
-  });
-
-  // ---------- Init ----------
-  (async function init(){
-    renderRoute();
-
-    $("c_fecha").value = todayISO();
-    $("c_fecha_list").value = todayISO();
-    $("p_fecha").value = todayISO();
-    $("p_fecha_rep").value = todayISO();
-    updateTotal();
-
-    try{
-      await loadPacientes();
-      await loadDirecciones($("c_paciente").value);
-    }catch(e){
-      // no bloquea la página, solo informa
-      setMsg($("msgCita"), "No pude cargar pacientes/direcciones. Revisa /api/paciente y /api/direccion.", "warn");
-    }
-  })();
-
-  (function () {
-    const p = location.pathname.replace(/\/+$/, "");
-
-    if (p === "/citas" && location.hash !== "#citas") {
-      location.hash = "#citas";
-    }
-    if (p === "/pagos" && location.hash !== "#pagos") {
-      location.hash = "#pagos";
-    }
-  })();
-  
-<script>
-  // Función para mostrar u ocultar secciones dependiendo del hash
-  function renderRoute() {
-    const hash = location.hash || "#citas";  // Si no hay hash, mostrar "Citas" por defecto
-    document.querySelector("#viewCitas").classList.toggle("hide", hash !== "#citas");
-    document.querySelector("#viewPagos").classList.toggle("hide", hash !== "#pagos");
-    document.querySelector("#viewEstado").classList.toggle("hide", hash !== "#estado");
-  }
-
-  // Llamar a la función cuando cambie el hash
-  window.addEventListener("hashchange", renderRoute);
-
-  // Ejecutar la función al cargar la página
-  renderRoute();
-</script>
-
-
-</body>
+      // Ejecutar la función al cargar la página
+      renderRoute();
+    </script>
+  </body>
 </html>
+
+
 
 
 
