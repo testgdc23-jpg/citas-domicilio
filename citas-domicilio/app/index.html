@@ -30,6 +30,30 @@
   <h1>Pacientes</h1>
   <div class="muted">API: <code>/api/paciente</code></div>
 
+<div class="card">
+  <div class="row" style="justify-content: space-between; align-items:center;">
+    <h2 style="margin:0;">Buscar paciente por CI</h2>
+    <span class="muted">GET <code>/api/paciente?ci=...</code></span>
+  </div>
+
+  <div class="row" style="margin-top:12px; gap:12px;">
+    <div style="flex:1;">
+      <label for="ciSearch">CI (10 dígitos)</label>
+      <input id="ciSearch" maxlength="10" inputmode="numeric" placeholder="0912345678" />
+    </div>
+
+    <div style="display:flex; gap:10px; align-items:flex-end;">
+      <button class="primary" type="button" id="btnBuscar">Buscar</button>
+      <button class="secondary" type="button" id="btnVerTodos">Ver todos</button>
+    </div>
+  </div>
+
+  <div class="muted" style="margin-top:10px;" id="searchHint">
+    Tip: escribe la CI completa y presiona “Buscar”.
+  </div>
+</div>
+
+  
   <div class="card">
     <h2 style="margin:0 0 12px;">Nuevo paciente</h2>
 
@@ -191,3 +215,4 @@
 </script>
 </body>
 </html>
+
