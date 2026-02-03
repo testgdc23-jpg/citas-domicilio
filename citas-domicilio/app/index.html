@@ -3,207 +3,214 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Citas a Domicilio</title>
+  <title>Pacientes – Citas a Domicilio</title>
   <style>
     :root{
-      --bg:#0b1020;
-      --card:#111a33;
-      --muted:#9aa7c7;
-      --text:#e8eeff;
-      --line:rgba(255,255,255,.08);
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
-      --radius: 16px;
+      --bg1:#070b1a; --bg2:#0b1536; --card:#0f1a3a; --card2:#0b1430;
+      --txt:#e8eeff; --muted:#a9b4d8; --line:rgba(255,255,255,.10);
+      --glow:rgba(92,141,255,.25);
     }
     *{box-sizing:border-box}
     body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      background: radial-gradient(1200px 600px at 20% 0%, #182356 0%, var(--bg) 55%);
-      color:var(--text);
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--txt);
+      background:
+        radial-gradient(900px 500px at 25% 20%, rgba(92,141,255,.22), transparent 55%),
+        radial-gradient(700px 500px at 70% 75%, rgba(34,211,238,.12), transparent 60%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+      padding: 28px;
     }
-    .wrap{max-width:1100px;margin:28px auto;padding:0 16px}
-    .top{
-      display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
-      margin-bottom:18px;
+    .wrap{max-width:1100px; margin:0 auto;}
+    h1{margin:0; font-size:42px; letter-spacing:.3px}
+    .sub{margin:6px 0 0; color:var(--muted)}
+    .topbar{display:flex; align-items:flex-start; justify-content:space-between; gap:16px}
+    .chips{display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end}
+    .chip{
+      display:inline-flex; gap:10px; align-items:center;
+      padding:10px 12px; border:1px solid var(--line);
+      border-radius:999px; background:rgba(0,0,0,.20);
+      color:var(--muted); font-size:13px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.20);
     }
-    h1{margin:0;font-size:34px;letter-spacing:.2px}
-    .sub{margin-top:6px;color:var(--muted);font-size:13px}
-    .pill{
-      display:inline-flex; gap:8px; align-items:center;
-      background: rgba(255,255,255,.06);
+    .chip b{color:var(--txt); font-weight:600}
+    .panel{
+      margin-top:22px;
       border:1px solid var(--line);
-      padding:8px 10px; border-radius:999px;
-      font-size:13px; color:var(--text);
-      height:fit-content;
-    }
-
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap:14px;
-      margin-top:14px;
-    }
-    .card{
-      grid-column: span 12;
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      border:1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
+      border-radius:18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
+      box-shadow: 0 18px 55px rgba(0,0,0,.40);
       overflow:hidden;
     }
-    .cardHead{
-      padding:16px 16px 10px 16px;
+    .panel-h{
+      padding:18px 18px 14px;
       border-bottom:1px solid var(--line);
-      background: rgba(0,0,0,.10);
     }
-    .cardHead h2{margin:0;font-size:16px;letter-spacing:.2px}
-    .cardHead p{margin:8px 0 0 0;color:var(--muted);font-size:13px}
-
-    .menu{
+    .panel-h h2{margin:0; font-size:18px}
+    .panel-h p{margin:6px 0 0; color:var(--muted); font-size:13px}
+    .grid{
+      padding:16px;
       display:grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap:12px;
-      padding:16px;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
     }
-
-    a.big{
-      grid-column: span 12;
-      display:flex; gap:14px; align-items:center;
-      padding:16px;
-      border-radius:14px;
-      border:1px solid var(--line);
-      background: rgba(0,0,0,.16);
-      color:var(--text);
+    @media (max-width: 820px){
+      h1{font-size:34px}
+      .grid{grid-template-columns: 1fr}
+      .chips{justify-content:flex-start}
+      .topbar{flex-direction:column}
+    }
+    a.card{
       text-decoration:none;
-      transition: transform .08s ease, filter .08s ease;
-      min-height:76px;
+      color:inherit;
+      display:flex;
+      gap:14px;
+      align-items:center;
+      padding:16px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background: radial-gradient(900px 240px at 10% 20%, rgba(92,141,255,.15), transparent 55%),
+                  linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease, background .12s ease;
+      position:relative;
+      outline:none;
     }
-    a.big:hover{transform: translateY(-1px); filter: brightness(1.08)}
+    a.card:hover{
+      transform: translateY(-1px);
+      border-color: rgba(255,255,255,.18);
+      box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 4px var(--glow);
+    }
+    a.card:active{transform: translateY(0px) scale(.995)}
     .ico{
       width:44px; height:44px; border-radius:12px;
-      display:flex; align-items:center; justify-content:center;
-      background: rgba(255,255,255,.08);
-      border:1px solid var(--line);
-      font-size:22px;
-      flex: 0 0 auto;
+      display:grid; place-items:center;
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.10);
+      flex:0 0 auto;
+      font-size:20px;
     }
-    .txt{display:flex; flex-direction:column; gap:4px}
-    .txt .t{font-weight:800; font-size:16px}
-    .txt .d{color:var(--muted); font-size:13px}
-
-    .twoCol a.big{grid-column: span 6;}
-    .threeCol a.big{grid-column: span 4;}
-
-    @media (max-width: 900px){
-      .twoCol a.big{grid-column: span 12;}
-      .threeCol a.big{grid-column: span 12;}
+    .meta{min-width:0}
+    .meta .t{font-weight:700; font-size:18px; margin:0}
+    .meta .d{margin:2px 0 0; color:var(--muted); font-size:13px}
+    .badge{
+      margin-left:auto;
+      color:var(--muted);
+      border:1px solid rgba(255,255,255,.12);
+      padding:7px 10px;
+      border-radius:999px;
+      font-size:12px;
+      background:rgba(0,0,0,.18);
+      white-space:nowrap;
     }
-
-    .footer{
-      margin-top:14px;
+    .foot{
+      margin-top:16px;
       color:var(--muted);
       font-size:12px;
-      display:flex;
-      justify-content:space-between;
-      gap:10px;
-      flex-wrap:wrap;
+      line-height:1.4;
     }
-    code{background: rgba(255,255,255,.06); padding:2px 6px; border-radius:8px; border:1px solid var(--line)}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+    .hint{
+      display:inline-block;
+      margin-top:8px;
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.18);
+    }
   </style>
 </head>
-
 <body>
   <div class="wrap">
-    <div class="top">
+    <div class="topbar">
       <div>
         <h1>Pacientes – Citas a Domicilio</h1>
         <div class="sub">Menú principal de la aplicación</div>
       </div>
-      <div class="pill">🧠 API: <code>/api/*</code> · UI: <code>/app/*</code></div>
+      <div class="chips">
+        <div class="chip">🧠 <span>API:</span> <b class="mono">/api/*</b></div>
+        <div class="chip">🧩 <span>UI:</span> <b class="mono">/app/*</b></div>
+      </div>
     </div>
 
-    <div class="grid">
-
-      <div class="card">
-        <div class="cardHead">
-          <h2>Accesos rápidos</h2>
-          <p>Entra directo a cada módulo. (Botones grandes para que no te pierdas)</p>
-        </div>
-
-        <!-- Ajusta la clase del contenedor:
-             - "twoCol" para 2 columnas
-             - "threeCol" para 3 columnas
-             - sin clase para 1 columna
-        -->
-        <div class="menu twoCol">
-          <a class="big" href="/app/pacientes.html">
-            <div class="ico">👤</div>
-            <div class="txt">
-              <div class="t">Pacientes</div>
-              <div class="d">Crear / listar pacientes y gestionar direcciones.</div>
-            </div>
-          </a>
-
-          <!-- Si tu pantalla de agendamiento está en otro archivo (ej: cita.html),
-               cambia el href aquí -->
-          <a class="big" href="/app/admin.html">
-            <div class="ico">📅</div>
-            <div class="txt">
-              <div class="t">Citas</div>
-              <div class="d">Agendar citas (paciente + dirección + fecha/hora).</div>
-            </div>
-          </a>
-
-          <a class="big" href="/app/estado.html">
-            <div class="ico">✅</div>
-            <div class="txt">
-              <div class="t">Estado de citas</div>
-              <div class="d">Ver citas por fecha y cambiar estado (Guardar).</div>
-            </div>
-          </a>
-
-          <!-- Si tu pantalla de pagos está en otro archivo (ej: pago.html),
-               cambia el href aquí -->
-          <a class="big" href="/app/admin.html#pagos">
-            <div class="ico">💵</div>
-            <div class="txt">
-              <div class="t">Pagos</div>
-              <div class="d">Registrar pago por cita y reportes por fecha.</div>
-            </div>
-          </a>
-
-          <a class="big" href="/app/admin.html">
-            <div class="ico">⚙️</div>
-            <div class="txt">
-              <div class="t">Admin</div>
-              <div class="d">Herramientas y pantallas de apoyo (si las usas).</div>
-            </div>
-          </a>
-
-          <a class="big" href="/api/health" target="_blank" rel="noopener">
-            <div class="ico">🩺</div>
-            <div class="txt">
-              <div class="t">Health</div>
-              <div class="d">Verificar backend: <code>/api/health</code>.</div>
-            </div>
-          </a>
-        </div>
+    <div class="panel">
+      <div class="panel-h">
+        <h2>Accesos rápidos</h2>
+        <p>Entra directo a cada módulo. (Botones grandes para que no te pierdas)</p>
       </div>
 
-      <div class="footer">
-        <div>Tip: si algo “no se refleja”, abre con <code>?v=1</code> para forzar caché (ej: <code>/app/estado.html?v=1</code>).</div>
-        <div>Repo: <code>/app/</code> (UI) · <code>/functions/api/</code> (backend)</div>
-      </div>
+      <div class="grid">
+        <!-- PACIENTES -->
+        <a class="card" href="/app/pacientes.html">
+          <div class="ico">👤</div>
+          <div class="meta">
+            <p class="t">Pacientes</p>
+            <p class="d">Crear / listar pacientes y gestionar direcciones.</p>
+          </div>
+          <div class="badge mono">/app/pacientes.html</div>
+        </a>
 
+        <!-- CITAS (en tu repo NO existe cita.html, así que apunto al admin con hash) -->
+        <a class="card" href="/app/admin.html#citas">
+          <div class="ico">🗓️</div>
+          <div class="meta">
+            <p class="t">Citas</p>
+            <p class="d">Agendar citas (paciente + dirección + fecha/hora).</p>
+          </div>
+          <div class="badge mono">/app/admin.html#citas</div>
+        </a>
+
+        <!-- ESTADO -->
+        <a class="card" href="/app/estado.html">
+          <div class="ico">✅</div>
+          <div class="meta">
+            <p class="t">Estado de citas</p>
+            <p class="d">Ver citas por fecha y cambiar estado (Guardar).</p>
+          </div>
+          <div class="badge mono">/app/estado.html</div>
+        </a>
+
+        <!-- PAGOS -->
+        <a class="card" href="/app/admin.html#pagos">
+          <div class="ico">💵</div>
+          <div class="meta">
+            <p class="t">Pagos</p>
+            <p class="d">Registrar pago por cita y reportes por fecha.</p>
+          </div>
+          <div class="badge mono">/app/admin.html#pagos</div>
+        </a>
+
+        <!-- ADMIN -->
+        <a class="card" href="/app/admin.html">
+          <div class="ico">⚙️</div>
+          <div class="meta">
+            <p class="t">Admin</p>
+            <p class="d">Herramientas y pantallas de apoyo (si las usas).</p>
+          </div>
+          <div class="badge mono">/app/admin.html</div>
+        </a>
+
+        <!-- HEALTH -->
+        <a class="card" href="/api/health" target="_blank" rel="noopener">
+          <div class="ico">🩺</div>
+          <div class="meta">
+            <p class="t">Health</p>
+            <p class="d">Verificar backend: <span class="mono">/api/health</span>.</p>
+          </div>
+          <div class="badge mono">/api/health</div>
+        </a>
+      </div>
+    </div>
+
+    <div class="foot">
+      <div class="hint">
+        Tip: si algo “no se refleja”, abre con <span class="mono">?v=1</span> para forzar caché
+        (ej: <span class="mono">/app/index.html?v=1</span>).
+      </div>
     </div>
   </div>
-
-  <script>
-    // Si tu módulo de "Citas" NO es /app/admin.html, dime el nombre del archivo
-    // (ej: cita.html) y lo cambiamos aquí y en el botón.
-  </script>
 </body>
 </html>
+
 
 
 
