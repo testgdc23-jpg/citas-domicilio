@@ -118,6 +118,86 @@
   <div id="citasList" class="muted">Seleccione una fecha y cargue.</div>
 </div>
 
+
+<hr>
+
+<h1>Pagos</h1>
+<p class="muted">API: /api/pago (1 pago = 1 cita)</p>
+
+<div class="box">
+  <h2>Registrar pago</h2>
+
+  <div>
+    <label>Fecha (para cargar citas)</label><br>
+    <input id="pago_fecha_citas" type="date">
+    <button id="btnLoadCitasPago">Cargar citas</button>
+    <span id="pagoLoadMsg" class="muted"></span>
+  </div>
+
+  <br>
+
+  <div>
+    <label>Cita</label><br>
+    <select id="pago_cita"></select>
+  </div>
+
+  <br>
+
+  <div>
+    <label>Copago</label><br>
+    <input id="pago_copago" type="number" step="0.01" min="0" value="0">
+  </div>
+
+  <div>
+    <label>Medicina</label><br>
+    <input id="pago_medicina" type="number" step="0.01" min="0" value="0">
+  </div>
+
+  <div>
+    <label>Total (copago + medicina)</label><br>
+    <input id="pago_total" type="text" readonly value="0.00">
+  </div>
+
+  <div>
+    <label>Forma de pago</label><br>
+    <select id="pago_forma">
+      <option value="efectivo">efectivo</option>
+      <option value="transferencia">transferencia</option>
+    </select>
+  </div>
+
+  <div>
+    <label>Valor transferido</label><br>
+    <input id="pago_transferido" type="number" step="0.01" min="0" value="0">
+    <div class="muted">En efectivo debe ser 0. En transferencia debe ser igual al total.</div>
+  </div>
+
+  <div>
+    <label>Fecha de pago</label><br>
+    <input id="pago_fecha_pago" type="date">
+  </div>
+
+  <div>
+    <label>Observaciones</label><br>
+    <input id="pago_obs" placeholder="Opcional">
+  </div>
+
+  <br>
+  <button id="btnSavePago">Guardar pago</button>
+  <span id="pagoMsg"></span>
+
+  <div id="pagoEstado" class="muted" style="margin-top:10px;"></div>
+</div>
+
+<div class="box">
+  <h2>Reporte de pagos por fecha</h2>
+
+  <input id="rep_pago_fecha" type="date">
+  <button id="btnLoadPagosFecha">Cargar pagos</button>
+
+  <div id="repPagos" class="muted" style="margin-top:10px;">Seleccione una fecha.</div>
+</div>
+
   
 
 <script>
@@ -417,6 +497,226 @@ async function loadCitasByFecha() {
   `;
 }
 
+  /* ======================
+   PAGOS (UI)
+====================== */
+function money2(n) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return "0.00";
+  return (Math.round((x + Number.EPSILON) * 100) / 100).toFixed(2);
+}
+
+function calcPagoTotal() {
+  const cop = Number($("pago_copago").value || 0);
+  const med = Number($("pago_medicina").value || 0);
+  const total = cop + med;
+  $("pago_total").value = money2(total);
+
+  // auto-ajuste sugerido de transferido según forma
+  const forma = $("pago_forma").value;
+  if (forma === "transferencia") {
+    $("pago_transferido").value = money2(total);
+  } else {
+    $("pago_transferido").value = "0.00";
+  }
+}
+
+async function loadCitasForPago() {
+  const fecha = $("pago_fecha_citas").value;
+  const msg = $("pagoLoadMsg");
+  const sel = $("pago_cita");
+  sel.innerHTML = `<option value="">-- Seleccione cita --</option>`;
+  $("pagoEstado").textContent = "";
+
+  if (!fecha) {
+    msg.textContent = "Seleccione una fecha.";
+    return;
+  }
+
+  msg.textContent = "Cargando citas…";
+
+  // Traemos citas del día
+  const res = await fetch(`/api/cita?fecha=${fecha}`);
+  const citas = await res.json();
+
+  if (!citas.length) {
+    msg.textContent = "No hay citas para esa fecha.";
+    return;
+  }
+
+  // Por cada cita consultamos si ya tiene pago (simple y claro)
+  // Si luego quieres optimizar, hacemos un endpoint /api/cita con flag pagado.
+  for (const c of citas) {
+    let pagado = false;
+    try {
+      const rp = await fetch(`/api/pago?cita_id=${c.id}`);
+      const pagos = await rp.json();
+      pagado = Array.isArray(pagos) && pagos.length > 0;
+    } catch {}
+
+    const opt = document.createElement("option");
+    opt.value = c.id;
+    opt.textContent =
+      `Cita #${c.id} - ${c.hora} - ${c.nombre} ${c.apellido} - ${c.direccion}` +
+      (pagado ? " [PAGADA]" : "");
+    opt.dataset.pagado = pagado ? "1" : "0";
+    sel.appendChild(opt);
+  }
+
+  msg.textContent = "Citas cargadas.";
+}
+
+async function onSelectCitaPago() {
+  const sel = $("pago_cita");
+  const opt = sel.options[sel.selectedIndex];
+  const estado = $("pagoEstado");
+  const cita_id = Number(sel.value);
+
+  if (!cita_id) {
+    estado.textContent = "";
+    return;
+  }
+
+  // Consultar si ya tiene pago
+  const res = await fetch(`/api/pago?cita_id=${cita_id}`);
+  const data = await res.json();
+
+  if (Array.isArray(data) && data.length) {
+    const p = data[0];
+    estado.innerHTML = `<b>Esta cita YA tiene pago</b> (Pago #${p.id}) - ${p.forma_pago}, total: ${money2(p.total_recibido)}.`;
+    $("btnSavePago").disabled = true;
+  } else {
+    estado.textContent = "Esta cita no tiene pago aún.";
+    $("btnSavePago").disabled = false;
+  }
+}
+
+async function savePago() {
+  const msg = $("pagoMsg");
+  const btn = $("btnSavePago");
+
+  const cita_id = Number($("pago_cita").value);
+  const copago = Number($("pago_copago").value || 0);
+  const medicina = Number($("pago_medicina").value || 0);
+  const total = Number($("pago_total").value || 0);
+  const forma_pago = $("pago_forma").value;
+  const valor_transferido = Number($("pago_transferido").value || 0);
+  const fecha_pago = $("pago_fecha_pago").value;
+  const observaciones = $("pago_obs").value.trim();
+
+  if (!cita_id) return setMsg(msg, "Seleccione una cita.", "error");
+  if (!fecha_pago) return setMsg(msg, "Fecha de pago es obligatoria.", "error");
+  if (copago < 0 || medicina < 0) return setMsg(msg, "Montos no pueden ser negativos.", "error");
+
+  // validaciones de negocio (mismas que backend, para UX)
+  if (money2(copago + medicina) !== money2(total)) {
+    return setMsg(msg, "Total inconsistente (copago + medicina).", "error");
+  }
+  if (forma_pago === "efectivo" && money2(valor_transferido) !== "0.00") {
+    return setMsg(msg, "En efectivo, valor transferido debe ser 0.", "error");
+  }
+  if (forma_pago === "transferencia" && money2(valor_transferido) !== money2(total)) {
+    return setMsg(msg, "En transferencia, valor transferido debe igualar el total.", "error");
+  }
+
+  btn.disabled = true;
+  setMsg(msg, "Guardando pago…", "muted");
+
+  try {
+    const res = await fetch("/api/pago", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cita_id,
+        copago,
+        medicina,
+        valor_transferido,
+        forma_pago,
+        fecha_pago,
+        observaciones
+      })
+    });
+
+    const out = await res.json();
+    if (!res.ok) throw new Error(out.error || "Error");
+
+    setMsg(msg, `Pago creado. ID=${out.id}`, "ok");
+
+    // refrescar estado de la cita seleccionada
+    await onSelectCitaPago();
+  } catch (e) {
+    setMsg(msg, e.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadPagosByFecha() {
+  const fecha = $("rep_pago_fecha").value;
+  const box = $("repPagos");
+  if (!fecha) {
+    box.textContent = "Seleccione una fecha.";
+    return;
+  }
+
+  box.textContent = "Cargando…";
+
+  const res = await fetch(`/api/pago?fecha=${fecha}`);
+  const data = await res.json();
+
+  if (!data.length) {
+    box.textContent = "No hay pagos para esa fecha.";
+    return;
+  }
+
+  // Totales
+  let totalDia = 0;
+  let totalEfectivo = 0;
+  let totalTransfer = 0;
+
+  for (const p of data) {
+    const t = Number(p.total_recibido || 0);
+    totalDia += t;
+    if (p.forma_pago === "efectivo") totalEfectivo += t;
+    if (p.forma_pago === "transferencia") totalTransfer += t;
+  }
+
+  box.innerHTML = `
+    <div><b>Total día:</b> ${money2(totalDia)} | <b>Efectivo:</b> ${money2(totalEfectivo)} | <b>Transferencia:</b> ${money2(totalTransfer)}</div>
+    <br>
+    <table>
+      <thead>
+        <tr>
+          <th>Pago</th>
+          <th>Cita</th>
+          <th>Paciente</th>
+          <th>Fecha/Hora</th>
+          <th>Forma</th>
+          <th>Total</th>
+          <th>Copago</th>
+          <th>Medicina</th>
+          <th>Obs</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(p => `
+          <tr>
+            <td>${p.id}</td>
+            <td>${p.cita_id}</td>
+            <td>${p.nombre} ${p.apellido} (${p.ci})</td>
+            <td>${p.cita_fecha} ${p.cita_hora}</td>
+            <td>${p.forma_pago}</td>
+            <td>${money2(p.total_recibido)}</td>
+            <td>${money2(p.copago)}</td>
+            <td>${money2(p.medicina)}</td>
+            <td>${p.observaciones || ""}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
   
 /* ======================
    EVENTOS (PASO 4)
@@ -433,15 +733,35 @@ $("cita_paciente").addEventListener("change", (e) => {
 $("btnSaveCita").addEventListener("click", saveCita);
 $("btnLoadCitas").addEventListener("click", loadCitasByFecha);
 
+// Eventos Pagos
+$("btnLoadCitasPago").addEventListener("click", loadCitasForPago);
+$("pago_cita").addEventListener("change", onSelectCitaPago);
 
+$("pago_copago").addEventListener("input", calcPagoTotal);
+$("pago_medicina").addEventListener("input", calcPagoTotal);
+$("pago_forma").addEventListener("change", calcPagoTotal);
+
+$("btnSavePago").addEventListener("click", savePago);
+
+$("btnLoadPagosFecha").addEventListener("click", loadPagosByFecha);
+
+  
 /* ======================
    INIT
 ====================== */
 loadPacientes();
 loadPacientesToSelect();
 
+  // Inicializar pagos: set fecha pago hoy (o mismo día)
+const today = new Date().toISOString().slice(0,10);
+$("pago_fecha_pago").value = today;
+$("rep_pago_fecha").value = today;
+calcPagoTotal();
+
+
 </script>
 
 </body>
 </html>
+
 
