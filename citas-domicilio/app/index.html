@@ -1,302 +1,249 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pacientes</title>
+  <meta charset="UTF-8" />
+  <title>Pacientes – Citas a Domicilio</title>
   <style>
-    body { font-family: system-ui, Arial; margin: 24px; }
-    h1 { margin: 0 0 16px; }
-    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-    label { display: block; font-size: 12px; color: #444; margin-bottom: 6px; }
-    input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
-    button { padding: 10px 14px; border: 0; border-radius: 10px; cursor: pointer; }
-    button.primary { background: #111; color: #fff; }
-    button.secondary { background: #eee; }
-    .row { display: flex; gap: 10px; align-items: center; }
-    .card { border: 1px solid #e6e6e6; border-radius: 14px; padding: 16px; margin: 14px 0; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
-    th { font-size: 12px; color: #555; }
-    .muted { color: #666; font-size: 12px; }
-    .error { color: #b00020; }
-    .ok { color: #0a7a2f; }
-    @media (max-width: 900px) {
-      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    h1, h2 { margin-top: 30px; }
+    input, select, button { padding: 6px; margin: 4px; }
+    button { cursor: pointer; }
+    .box { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-top: 15px; }
+    .ok { color: green; }
+    .error { color: red; }
+    .muted { color: #666; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border-bottom: 1px solid #eee; padding: 6px; text-align: left; }
   </style>
 </head>
 <body>
-  <h1>Pacientes</h1>
-  <div class="muted">API: <code>/api/paciente</code></div>
 
-<div class="card">
-  <div class="row" style="justify-content: space-between; align-items:center;">
-    <h2 style="margin:0;">Buscar paciente por CI</h2>
-    <span class="muted">GET <code>/api/paciente?ci=...</code></span>
-  </div>
+<h1>Pacientes</h1>
+<p class="muted">API: /api/paciente</p>
 
-  <div class="row" style="margin-top:12px; gap:12px;">
-    <div style="flex:1;">
-      <label for="ciSearch">CI (10 dígitos)</label>
-      <input id="ciSearch" maxlength="10" inputmode="numeric" placeholder="0912345678" />
-    </div>
+<div class="box">
+  <h2>Nuevo paciente</h2>
 
-    <div style="display:flex; gap:10px; align-items:flex-end;">
-      <button class="primary" type="button" id="btnBuscar">Buscar</button>
-      <button class="secondary" type="button" id="btnVerTodos">Ver todos</button>
-    </div>
-  </div>
+  <input id="ci" placeholder="CI (10 dígitos)">
+  <input id="nombre" placeholder="Nombre">
+  <input id="apellido" placeholder="Apellido">
+  <input id="telefono" placeholder="Teléfono">
 
-  <div class="muted" style="margin-top:10px;" id="searchHint">
-    Tip: escribe la CI completa y presiona “Buscar”.
-  </div>
+  <br><br>
+  <button id="btnSavePaciente">Guardar</button>
+  <button id="btnReloadPacientes">Refrescar</button>
+  <span id="pacienteMsg"></span>
 </div>
 
-  
-  <div class="card">
-    <h2 style="margin:0 0 12px;">Nuevo paciente</h2>
+<div class="box">
+  <h2>Listado</h2>
+  <div id="pacientesList" class="muted">Cargando…</div>
+</div>
 
-    <form id="frm" autocomplete="off">
-      <div class="grid">
-        <div>
-          <label for="ci">CI (10 dígitos)</label>
-          <input id="ci" name="ci" inputmode="numeric" maxlength="10" placeholder="0912345678" required />
-        </div>
-        <div>
-          <label for="nombre">Nombre</label>
-          <input id="nombre" name="nombre" placeholder="Juan" required />
-        </div>
-        <div>
-          <label for="apellido">Apellido</label>
-          <input id="apellido" name="apellido" placeholder="Perez" required />
-        </div>
-        <div>
-          <label for="telefono">Teléfono</label>
-          <input id="telefono" name="telefono" inputmode="tel" placeholder="0999999999" />
-        </div>
-      </div>
+<hr>
 
-      <div class="row" style="margin-top:12px;">
-        <button class="primary" type="submit">Guardar</button>
-        <button class="secondary" type="button" id="btnRefresh">Refrescar</button>
-        <span id="msg" class="muted"></span>
-      </div>
-    </form>
-  </div>
+<h1>Direcciones del paciente</h1>
 
-  <div class="card">
-    <div class="row" style="justify-content: space-between;">
-      <h2 style="margin:0;">Listado</h2>
-      <span class="muted" id="count"></span>
-    </div>
+<div class="box">
+  <h2>Buscar direcciones</h2>
+  <input id="dir_paciente_id" placeholder="ID del paciente">
+  <button id="btnLoadDirs">Cargar direcciones</button>
 
-    <div style="overflow:auto; margin-top:10px;">
+  <div id="dirsList" class="muted"></div>
+</div>
+
+<div class="box">
+  <h2>Nueva dirección</h2>
+
+  <input id="dir_direccion" placeholder="Dirección">
+  <input id="dir_ciudad" placeholder="Ciudad">
+  <select id="dir_zona">
+    <option value="">Zona</option>
+    <option value="urbano">Urbano</option>
+    <option value="extraurbano">Extraurbano</option>
+  </select>
+  <input id="dir_sector" placeholder="Sector">
+  <input id="dir_referencia" placeholder="Referencia">
+
+  <br><br>
+  <button id="btnSaveDir">Guardar dirección</button>
+  <span id="dirMsg"></span>
+</div>
+
+<script>
+/* ======================
+   HELPERS
+====================== */
+const $ = (id) => document.getElementById(id);
+
+function setMsg(el, text, cls = "") {
+  el.textContent = text;
+  el.className = cls;
+}
+
+/* ======================
+   PACIENTES
+====================== */
+async function loadPacientes() {
+  const box = $("pacientesList");
+  box.textContent = "Cargando…";
+
+  try {
+    const res = await fetch("/api/paciente");
+    const data = await res.json();
+
+    if (!data.length) {
+      box.textContent = "No hay pacientes.";
+      return;
+    }
+
+    box.innerHTML = `
       <table>
         <thead>
           <tr>
-            <th>ID</th>
-            <th>CI</th>
-            <th>Nombre</th>
-            <th>Apellido</th>
-            <th>Teléfono</th>
+            <th>ID</th><th>CI</th><th>Nombre</th><th>Apellido</th><th>Teléfono</th>
           </tr>
         </thead>
-        <tbody id="tbody">
-          <tr><td colspan="5" class="muted">Cargando...</td></tr>
+        <tbody>
+          ${data.map(p => `
+            <tr>
+              <td>${p.id}</td>
+              <td>${p.ci}</td>
+              <td>${p.nombre}</td>
+              <td>${p.apellido}</td>
+              <td>${p.telefono || ""}</td>
+            </tr>
+          `).join("")}
         </tbody>
       </table>
-    </div>
-  </div>
-
-<script>
-  const $ = (id) => document.getElementById(id);
-
-  function setMsg(text, kind = "muted") {
-    const el = $("msg");
-    el.className = kind;
-    el.textContent = text;
-  }
-
-  function onlyDigits10(value) {
-    const d = String(value).replace(/\D/g, "");
-    return d.slice(0, 10);
-  }
-
-async function loadPacientes(ci = "") {
-  setMsg("Cargando...", "muted");
-  const tbody = $("tbody");
-  tbody.innerHTML = `<tr><td colspan="5" class="muted">Cargando...</td></tr>`;
-
-  try {
-    const url = ci ? `/api/paciente?ci=${encodeURIComponent(ci)}` : "/api/paciente";
-    const res = await fetch(url, { method: "GET" });
-    if (!res.ok) throw new Error("GET falló: " + res.status);
-
-    const data = await res.json();
-    $("count").textContent = `${data.length} registro(s)`;
-
-    if (!data.length) {
-      tbody.innerHTML = `<tr><td colspan="5" class="muted">Sin registros</td></tr>`;
-      setMsg(ci ? "No se encontró esa CI." : "Listo.", ci ? "error" : "ok");
-      return;
-    }
-
-    tbody.innerHTML = data.map(p => `
-      <tr>
-        <td>${p.id ?? ""}</td>
-        <td>${p.ci ?? ""}</td>
-        <td>${p.nombre ?? ""}</td>
-        <td>${p.apellido ?? ""}</td>
-        <td>${p.telefono ?? ""}</td>
-      </tr>
-    `).join("");
-
-    setMsg(ci ? "Encontrado." : "Listo.", "ok");
-  } catch (err) {
-    console.error(err);
-    tbody.innerHTML = `<tr><td colspan="5" class="error">Error cargando datos</td></tr>`;
-    setMsg(String(err.message || err), "error");
+    `;
+  } catch {
+    box.textContent = "Error cargando pacientes.";
   }
 }
 
+async function savePaciente() {
+  const msg = $("pacienteMsg");
 
-  $("ci").addEventListener("input", (e) => {
-    e.target.value = onlyDigits10(e.target.value);
-  });
+  const payload = {
+    ci: $("ci").value.trim(),
+    nombre: $("nombre").value.trim(),
+    apellido: $("apellido").value.trim(),
+    telefono: $("telefono").value.trim()
+  };
 
-  $("btnRefresh").addEventListener("click", loadPacientes);
-
-// Buscar por CI (10 dígitos)
-$("ciSearch").addEventListener("input", (e) => {
-  e.target.value = onlyDigits10(e.target.value);
-});
-
-$("btnBuscar").addEventListener("click", async () => {
-  const ci = onlyDigits10($("ciSearch").value);
-  if (ci.length !== 10) {
-    setMsg("Para buscar, la CI debe tener 10 dígitos.", "error");
-    $("ciSearch").focus();
+  if (!payload.ci || !payload.nombre || !payload.apellido) {
+    setMsg(msg, "CI, nombre y apellido son obligatorios.", "error");
     return;
   }
-  await loadPacientes(ci);
-});
 
-$("btnVerTodos").addEventListener("click", async () => {
-  $("ciSearch").value = "";
-  await loadPacientes();
-});
+  setMsg(msg, "Guardando…", "muted");
 
-  
-  $("frm").addEventListener("submit", async (e) => {
-    e.preventDefault();
+  try {
+    const res = await fetch("/api/paciente", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
 
-    const payload = {
-      ci: onlyDigits10($("ci").value),
-      nombre: $("nombre").value.trim(),
-      apellido: $("apellido").value.trim(),
-      telefono: $("telefono").value.trim(),
-    };
+    const out = await res.json();
+    if (!res.ok) throw new Error(out.error);
 
-    if (payload.ci.length !== 10) {
-      setMsg("La CI debe tener 10 dígitos.", "error");
-      $("ci").focus();
-      return;
-    }
-    if (!payload.nombre || !payload.apellido) {
-      setMsg("Nombre y Apellido son obligatorios.", "error");
-      return;
-    }
+    setMsg(msg, "Paciente guardado.", "ok");
+    loadPacientes();
+  } catch (err) {
+    setMsg(msg, err.message, "error");
+  }
+}
 
-    setMsg("Guardando...", "muted");
+/* ======================
+   DIRECCIONES
+====================== */
+async function loadDirecciones() {
+  const pid = Number($("dir_paciente_id").value);
+  const box = $("dirsList");
 
-    try {
-      const res = await fetch("/api/paciente", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+  if (!pid || pid <= 0) {
+    box.textContent = "ID de paciente inválido.";
+    return;
+  }
 
-      const out = await res.json().catch(() => ({}));
+  box.textContent = "Cargando…";
 
-      if (!res.ok) {
-        throw new Error(out.error ? out.error : ("POST falló: " + res.status));
-      }
+  const res = await fetch(`/api/direccion?paciente_id=${pid}`);
+  const data = await res.json();
 
-      setMsg(`Guardado. ID = ${out.id}`, "ok");
-      e.target.reset();
-      await loadPacientes();
-      $("ci").focus();
-    } catch (err) {
-      console.error(err);
-      setMsg(String(err.message || err), "error");
-    }
+  if (!data.length) {
+    box.textContent = "Este paciente no tiene direcciones.";
+    return;
+  }
+
+  box.innerHTML = `
+    <ul>
+      ${data.map(d => `
+        <li>
+          <strong>${d.direccion}</strong>
+          ${d.ciudad || ""} ${d.zona || ""}
+        </li>
+      `).join("")}
+    </ul>
+  `;
+}
+
+async function saveDireccion() {
+  const msg = $("dirMsg");
+  const pid = Number($("dir_paciente_id").value);
+
+  if (!pid || pid <= 0) {
+    setMsg(msg, "ID de paciente inválido.", "error");
+    return;
+  }
+
+  const payload = {
+    paciente_id: pid,
+    direccion: $("dir_direccion").value.trim(),
+    ciudad: $("dir_ciudad").value.trim(),
+    zona: $("dir_zona").value,
+    sector: $("dir_sector").value.trim(),
+    referencia: $("dir_referencia").value.trim()
+  };
+
+  if (!payload.direccion) {
+    setMsg(msg, "Dirección obligatoria.", "error");
+    return;
+  }
+
+  setMsg(msg, "Guardando…", "muted");
+
+  const res = await fetch("/api/direccion", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
   });
 
-  // Carga inicial
-  loadPacientes();
+  const out = await res.json();
+  if (!res.ok) {
+    setMsg(msg, out.error, "error");
+    return;
+  }
+
+  setMsg(msg, "Dirección guardada.", "ok");
+  loadDirecciones();
+}
+
+/* ======================
+   EVENTOS (PASO 4)
+====================== */
+$("btnSavePaciente").addEventListener("click", savePaciente);
+$("btnReloadPacientes").addEventListener("click", loadPacientes);
+$("btnLoadDirs").addEventListener("click", loadDirecciones);
+$("btnSaveDir").addEventListener("click", saveDireccion);
+
+/* ======================
+   INIT
+====================== */
+loadPacientes();
 </script>
+
 </body>
 </html>
-<div class="card" style="margin-top:20px;">
-  <h2>Direcciones del paciente</h2>
-
-  <div class="row" style="gap:12px;">
-    <div style="flex:1;">
-      <label>ID Paciente</label>
-      <input id="dir_paciente_id" type="number" placeholder="Selecciona un paciente" />
-    </div>
-
-    <div style="display:flex; align-items:flex-end;">
-      <button class="secondary" id="btnLoadDirs" type="button">Cargar direcciones</button>
-    </div>
-  </div>
-
-  <div id="dirsList" class="muted" style="margin-top:10px;">
-    Selecciona un paciente para ver sus direcciones.
-  </div>
-
-  <hr style="margin:16px 0;"/>
-
-  <h3>Nueva dirección</h3>
-
-  <div class="row" style="gap:12px;">
-    <div style="flex:2;">
-      <label>Dirección</label>
-      <input id="dir_direccion" placeholder="Av. Principal 123 y Calle 4" />
-    </div>
-    <div style="flex:1;">
-      <label>Ciudad</label>
-      <input id="dir_ciudad" placeholder="Guayaquil" />
-    </div>
-  </div>
-
-  <div class="row" style="gap:12px;">
-    <div style="flex:1;">
-      <label>Zona</label>
-      <select id="dir_zona">
-        <option value="">--</option>
-        <option value="urbano">Urbano</option>
-        <option value="extraurbano">Extraurbano</option>
-      </select>
-    </div>
-    <div style="flex:1;">
-      <label>Sector</label>
-      <input id="dir_sector" placeholder="Centro" />
-    </div>
-  </div>
-
-  <div>
-    <label>Referencia</label>
-    <input id="dir_referencia" placeholder="Casa blanca, portón negro" />
-  </div>
-
-  <button class="primary" id="btnSaveDir" type="button" style="margin-top:10px;">
-    Guardar dirección
-  </button>
-
-  <span id="dirMsg" class="muted" style="margin-left:10px;"></span>
-</div>
-
-
-
