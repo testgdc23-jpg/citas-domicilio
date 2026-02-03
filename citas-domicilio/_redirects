@@ -1,0 +1,4 @@
+/estado  /app/estado.html  200
+/citas   /app/admin.html#citas  200
+/pagos   /app/admin.html#pagos  200
+/        /app/index.html     200
