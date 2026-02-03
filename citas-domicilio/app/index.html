@@ -123,41 +123,43 @@
     return d.slice(0, 10);
   }
 
-  async function loadPacientes() {
-    setMsg("Cargando...", "muted");
-    const tbody = $("tbody");
-    tbody.innerHTML = `<tr><td colspan="5" class="muted">Cargando...</td></tr>`;
+async function loadPacientes(ci = "") {
+  setMsg("Cargando...", "muted");
+  const tbody = $("tbody");
+  tbody.innerHTML = `<tr><td colspan="5" class="muted">Cargando...</td></tr>`;
 
-    try {
-      const res = await fetch("/api/paciente", { method: "GET" });
-      if (!res.ok) throw new Error("GET /api/paciente falló: " + res.status);
+  try {
+    const url = ci ? `/api/paciente?ci=${encodeURIComponent(ci)}` : "/api/paciente";
+    const res = await fetch(url, { method: "GET" });
+    if (!res.ok) throw new Error("GET falló: " + res.status);
 
-      const data = await res.json();
-      $("count").textContent = `${data.length} registro(s)`;
+    const data = await res.json();
+    $("count").textContent = `${data.length} registro(s)`;
 
-      if (!data.length) {
-        tbody.innerHTML = `<tr><td colspan="5" class="muted">Sin registros</td></tr>`;
-        setMsg("Listo.", "ok");
-        return;
-      }
-
-      tbody.innerHTML = data.map(p => `
-        <tr>
-          <td>${p.id ?? ""}</td>
-          <td>${p.ci ?? ""}</td>
-          <td>${p.nombre ?? ""}</td>
-          <td>${p.apellido ?? ""}</td>
-          <td>${p.telefono ?? ""}</td>
-        </tr>
-      `).join("");
-
-      setMsg("Listo.", "ok");
-    } catch (err) {
-      console.error(err);
-      tbody.innerHTML = `<tr><td colspan="5" class="error">Error cargando datos</td></tr>`;
-      setMsg(String(err.message || err), "error");
+    if (!data.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="muted">Sin registros</td></tr>`;
+      setMsg(ci ? "No se encontró esa CI." : "Listo.", ci ? "error" : "ok");
+      return;
     }
+
+    tbody.innerHTML = data.map(p => `
+      <tr>
+        <td>${p.id ?? ""}</td>
+        <td>${p.ci ?? ""}</td>
+        <td>${p.nombre ?? ""}</td>
+        <td>${p.apellido ?? ""}</td>
+        <td>${p.telefono ?? ""}</td>
+      </tr>
+    `).join("");
+
+    setMsg(ci ? "Encontrado." : "Listo.", "ok");
+  } catch (err) {
+    console.error(err);
+    tbody.innerHTML = `<tr><td colspan="5" class="error">Error cargando datos</td></tr>`;
+    setMsg(String(err.message || err), "error");
   }
+}
+
 
   $("ci").addEventListener("input", (e) => {
     e.target.value = onlyDigits10(e.target.value);
@@ -165,6 +167,27 @@
 
   $("btnRefresh").addEventListener("click", loadPacientes);
 
+// Buscar por CI (10 dígitos)
+$("ciSearch").addEventListener("input", (e) => {
+  e.target.value = onlyDigits10(e.target.value);
+});
+
+$("btnBuscar").addEventListener("click", async () => {
+  const ci = onlyDigits10($("ciSearch").value);
+  if (ci.length !== 10) {
+    setMsg("Para buscar, la CI debe tener 10 dígitos.", "error");
+    $("ciSearch").focus();
+    return;
+  }
+  await loadPacientes(ci);
+});
+
+$("btnVerTodos").addEventListener("click", async () => {
+  $("ciSearch").value = "";
+  await loadPacientes();
+});
+
+  
   $("frm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -215,4 +238,5 @@
 </script>
 </body>
 </html>
+
 
