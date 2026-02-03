@@ -238,5 +238,65 @@ $("btnVerTodos").addEventListener("click", async () => {
 </script>
 </body>
 </html>
+<div class="card" style="margin-top:20px;">
+  <h2>Direcciones del paciente</h2>
+
+  <div class="row" style="gap:12px;">
+    <div style="flex:1;">
+      <label>ID Paciente</label>
+      <input id="dir_paciente_id" type="number" placeholder="Selecciona un paciente" />
+    </div>
+
+    <div style="display:flex; align-items:flex-end;">
+      <button class="secondary" id="btnLoadDirs" type="button">Cargar direcciones</button>
+    </div>
+  </div>
+
+  <div id="dirsList" class="muted" style="margin-top:10px;">
+    Selecciona un paciente para ver sus direcciones.
+  </div>
+
+  <hr style="margin:16px 0;"/>
+
+  <h3>Nueva dirección</h3>
+
+  <div class="row" style="gap:12px;">
+    <div style="flex:2;">
+      <label>Dirección</label>
+      <input id="dir_direccion" placeholder="Av. Principal 123 y Calle 4" />
+    </div>
+    <div style="flex:1;">
+      <label>Ciudad</label>
+      <input id="dir_ciudad" placeholder="Guayaquil" />
+    </div>
+  </div>
+
+  <div class="row" style="gap:12px;">
+    <div style="flex:1;">
+      <label>Zona</label>
+      <select id="dir_zona">
+        <option value="">--</option>
+        <option value="urbano">Urbano</option>
+        <option value="extraurbano">Extraurbano</option>
+      </select>
+    </div>
+    <div style="flex:1;">
+      <label>Sector</label>
+      <input id="dir_sector" placeholder="Centro" />
+    </div>
+  </div>
+
+  <div>
+    <label>Referencia</label>
+    <input id="dir_referencia" placeholder="Casa blanca, portón negro" />
+  </div>
+
+  <button class="primary" id="btnSaveDir" type="button" style="margin-top:10px;">
+    Guardar dirección
+  </button>
+
+  <span id="dirMsg" class="muted" style="margin-left:10px;"></span>
+</div>
+
 
 
