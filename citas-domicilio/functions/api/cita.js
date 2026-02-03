@@ -169,8 +169,14 @@ export async function onRequest(context) {
 
       return json({ ok: true, id: result.meta.last_row_id }, 200);
     } catch (e) {
-      return json({ error: "Error al guardar cita." }, 500);
-    }
+  // D1/SQLite devuelve errores de UNIQUE constraint cuando choca un índice unique
+  const msg = String(e && (e.message || e));
+  if (msg.includes("UNIQUE constraint failed") || msg.includes("constraint failed")) {
+    return json({ error: "Ya existe una cita para ese paciente, dirección, fecha y hora." }, 409);
+  }
+  return json({ error: "Error al guardar cita." }, 500);
+}
+
   }
 
   return new Response("Method Not Allowed", { status: 405 });
@@ -183,3 +189,4 @@ export async function onRequest(context) {
     });
   }
 }
+
