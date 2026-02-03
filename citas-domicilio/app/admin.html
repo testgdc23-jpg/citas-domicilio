@@ -491,7 +491,55 @@
     if (p === "/citas" && location.hash !== "#citas") location.hash = "#citas";
     if (p === "/pagos" && location.hash !== "#pagos") location.hash = "#pagos";
   })();
+
+  
+<script>
+  // Función para mostrar u ocultar secciones dependiendo del hash
+  function renderRoute() {
+    const hash = location.hash || "#citas";  // Si no hay hash, mostrar "Citas" por defecto
+    document.querySelector("#viewCitas").classList.toggle("hide", hash !== "#citas");
+    document.querySelector("#viewPagos").classList.toggle("hide", hash !== "#pagos");
+    document.querySelector("#viewEstado").classList.toggle("hide", hash !== "#estado");
+  }
+
+  // Llamar a la función cuando cambie el hash
+  window.addEventListener("hashchange", renderRoute);
+
+  // Ejecutar la función al cargar la página
+  renderRoute();
+
+  // ---------- Cargar pacientes y direcciones ----------
+  async function cargarPacientes(){
+    const res = await fetch("/api/paciente");
+    const data = await res.json();
+    const sel = $("c_paciente");
+    sel.innerHTML = `<option value="">Seleccione...</option>`;
+    (data || []).forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = `${p.id} - ${p.cedula || ""} - ${p.nombres || ""} ${p.apellidos || ""}`.trim();
+      sel.appendChild(opt);
+    });
+  }
+
+  async function cargarDireccionesPorPaciente(pacienteId){
+    const sel = $("c_direccion");
+    sel.disabled = true;
+    sel.innerHTML = `<option value="">Cargando...</option>`;
+    const res = await fetch(`/api/direccion?paciente_id=${encodeURIComponent(pacienteId)}`);
+    const data = await res.json();
+    sel.innerHTML = `<option value="">Seleccione...</option>`;
+    (data || []).forEach(d => {
+      const opt = document.createElement("option");
+      opt.value = d.id;
+      opt.textContent = `${d.id} - ${d.direccion || ""} - ${d.ciudad || ""} (${d.zona || ""})`.trim();
+      sel.appendChild(opt);
+    });
+    sel.disabled = false;
+  }
 </script>
+
 
 </body>
 </html>
+
