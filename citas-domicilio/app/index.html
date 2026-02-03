@@ -1,767 +1,210 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Pacientes – Citas a Domicilio</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Citas a Domicilio</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 30px; }
-    h1, h2 { margin-top: 30px; }
-    input, select, button { padding: 6px; margin: 4px; }
-    button { cursor: pointer; }
-    .box { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-top: 15px; }
-    .ok { color: green; }
-    .error { color: red; }
-    .muted { color: #666; }
-    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-    th, td { border-bottom: 1px solid #eee; padding: 6px; text-align: left; }
+    :root{
+      --bg:#0b1020;
+      --card:#111a33;
+      --muted:#9aa7c7;
+      --text:#e8eeff;
+      --line:rgba(255,255,255,.08);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 16px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 600px at 20% 0%, #182356 0%, var(--bg) 55%);
+      color:var(--text);
+    }
+    .wrap{max-width:1100px;margin:28px auto;padding:0 16px}
+    .top{
+      display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+      margin-bottom:18px;
+    }
+    h1{margin:0;font-size:34px;letter-spacing:.2px}
+    .sub{margin-top:6px;color:var(--muted);font-size:13px}
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      padding:8px 10px; border-radius:999px;
+      font-size:13px; color:var(--text);
+      height:fit-content;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap:14px;
+      margin-top:14px;
+    }
+    .card{
+      grid-column: span 12;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .cardHead{
+      padding:16px 16px 10px 16px;
+      border-bottom:1px solid var(--line);
+      background: rgba(0,0,0,.10);
+    }
+    .cardHead h2{margin:0;font-size:16px;letter-spacing:.2px}
+    .cardHead p{margin:8px 0 0 0;color:var(--muted);font-size:13px}
+
+    .menu{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap:12px;
+      padding:16px;
+    }
+
+    a.big{
+      grid-column: span 12;
+      display:flex; gap:14px; align-items:center;
+      padding:16px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.16);
+      color:var(--text);
+      text-decoration:none;
+      transition: transform .08s ease, filter .08s ease;
+      min-height:76px;
+    }
+    a.big:hover{transform: translateY(-1px); filter: brightness(1.08)}
+    .ico{
+      width:44px; height:44px; border-radius:12px;
+      display:flex; align-items:center; justify-content:center;
+      background: rgba(255,255,255,.08);
+      border:1px solid var(--line);
+      font-size:22px;
+      flex: 0 0 auto;
+    }
+    .txt{display:flex; flex-direction:column; gap:4px}
+    .txt .t{font-weight:800; font-size:16px}
+    .txt .d{color:var(--muted); font-size:13px}
+
+    .twoCol a.big{grid-column: span 6;}
+    .threeCol a.big{grid-column: span 4;}
+
+    @media (max-width: 900px){
+      .twoCol a.big{grid-column: span 12;}
+      .threeCol a.big{grid-column: span 12;}
+    }
+
+    .footer{
+      margin-top:14px;
+      color:var(--muted);
+      font-size:12px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    code{background: rgba(255,255,255,.06); padding:2px 6px; border-radius:8px; border:1px solid var(--line)}
   </style>
 </head>
+
 <body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>Pacientes – Citas a Domicilio</h1>
+        <div class="sub">Menú principal de la aplicación</div>
+      </div>
+      <div class="pill">🧠 API: <code>/api/*</code> · UI: <code>/app/*</code></div>
+    </div>
 
-<h1>Pacientes</h1>
-<p class="muted">API: /api/paciente</p>
+    <div class="grid">
 
-<div class="box">
-  <h2>Nuevo paciente</h2>
+      <div class="card">
+        <div class="cardHead">
+          <h2>Accesos rápidos</h2>
+          <p>Entra directo a cada módulo. (Botones grandes para que no te pierdas)</p>
+        </div>
 
-  <input id="ci" placeholder="CI (10 dígitos)">
-  <input id="nombre" placeholder="Nombre">
-  <input id="apellido" placeholder="Apellido">
-  <input id="telefono" placeholder="Teléfono">
+        <!-- Ajusta la clase del contenedor:
+             - "twoCol" para 2 columnas
+             - "threeCol" para 3 columnas
+             - sin clase para 1 columna
+        -->
+        <div class="menu twoCol">
+          <a class="big" href="/app/pacientes.html">
+            <div class="ico">👤</div>
+            <div class="txt">
+              <div class="t">Pacientes</div>
+              <div class="d">Crear / listar pacientes y gestionar direcciones.</div>
+            </div>
+          </a>
 
-  <br><br>
-  <button id="btnSavePaciente">Guardar</button>
-  <button id="btnReloadPacientes">Refrescar</button>
-  <span id="pacienteMsg"></span>
-</div>
+          <!-- Si tu pantalla de agendamiento está en otro archivo (ej: cita.html),
+               cambia el href aquí -->
+          <a class="big" href="/app/admin.html">
+            <div class="ico">📅</div>
+            <div class="txt">
+              <div class="t">Citas</div>
+              <div class="d">Agendar citas (paciente + dirección + fecha/hora).</div>
+            </div>
+          </a>
 
-<div class="box">
-  <h2>Listado</h2>
-  <div id="pacientesList" class="muted">Cargando…</div>
-</div>
+          <a class="big" href="/app/estado.html">
+            <div class="ico">✅</div>
+            <div class="txt">
+              <div class="t">Estado de citas</div>
+              <div class="d">Ver citas por fecha y cambiar estado (Guardar).</div>
+            </div>
+          </a>
 
-<hr>
+          <!-- Si tu pantalla de pagos está en otro archivo (ej: pago.html),
+               cambia el href aquí -->
+          <a class="big" href="/app/admin.html#pagos">
+            <div class="ico">💵</div>
+            <div class="txt">
+              <div class="t">Pagos</div>
+              <div class="d">Registrar pago por cita y reportes por fecha.</div>
+            </div>
+          </a>
 
-<h1>Direcciones del paciente</h1>
+          <a class="big" href="/app/admin.html">
+            <div class="ico">⚙️</div>
+            <div class="txt">
+              <div class="t">Admin</div>
+              <div class="d">Herramientas y pantallas de apoyo (si las usas).</div>
+            </div>
+          </a>
 
-<div class="box">
-  <h2>Buscar direcciones</h2>
-  <input id="dir_paciente_id" placeholder="ID del paciente">
-  <button id="btnLoadDirs">Cargar direcciones</button>
+          <a class="big" href="/api/health" target="_blank" rel="noopener">
+            <div class="ico">🩺</div>
+            <div class="txt">
+              <div class="t">Health</div>
+              <div class="d">Verificar backend: <code>/api/health</code>.</div>
+            </div>
+          </a>
+        </div>
+      </div>
 
-  <div id="dirsList" class="muted"></div>
-</div>
+      <div class="footer">
+        <div>Tip: si algo “no se refleja”, abre con <code>?v=1</code> para forzar caché (ej: <code>/app/estado.html?v=1</code>).</div>
+        <div>Repo: <code>/app/</code> (UI) · <code>/functions/api/</code> (backend)</div>
+      </div>
 
-<div class="box">
-  <h2>Nueva dirección</h2>
-
-  <input id="dir_direccion" placeholder="Dirección">
-  <input id="dir_ciudad" placeholder="Ciudad">
-  <select id="dir_zona">
-    <option value="">Zona</option>
-    <option value="urbano">Urbano</option>
-    <option value="extraurbano">Extraurbano</option>
-  </select>
-  <input id="dir_sector" placeholder="Sector">
-  <input id="dir_referencia" placeholder="Referencia">
-
-  <br><br>
-  <button id="btnSaveDir">Guardar dirección</button>
-  <span id="dirMsg"></span>
-</div>
-
-
-  <hr>
-
-<h1>Citas</h1>
-<p class="muted">API: /api/cita</p>
-
-<div class="box">
-  <h2>Nueva cita</h2>
-
-  <div>
-    <label>Paciente</label><br>
-    <select id="cita_paciente"></select>
+    </div>
   </div>
 
-  <div>
-    <label>Dirección (obligatoria)</label><br>
-    <select id="cita_direccion"></select>
-  </div>
-
-  <div>
-    <label>Fecha</label><br>
-    <input id="cita_fecha" type="date">
-  </div>
-
-  <div>
-    <label>Hora</label><br>
-    <input id="cita_hora" type="time">
-  </div>
-
-  <div>
-    <label>Síntomas</label><br>
-    <input id="cita_sintomas" placeholder="Ej: dolor de cabeza">
-  </div>
-
-  <br>
-  <button id="btnSaveCita">Agendar cita</button>
-  <span id="citaMsg"></span>
-</div>
-
-<div class="box">
-  <h2>Listado por fecha</h2>
-
-  <input id="filtro_fecha" type="date">
-  <button id="btnLoadCitas">Cargar citas</button>
-
-  <div id="citasList" class="muted">Seleccione una fecha y cargue.</div>
-</div>
-
-
-<hr>
-
-<h1>Pagos</h1>
-<p class="muted">API: /api/pago (1 pago = 1 cita)</p>
-
-<div class="box">
-  <h2>Registrar pago</h2>
-
-  <div>
-    <label>Fecha (para cargar citas)</label><br>
-    <input id="pago_fecha_citas" type="date">
-    <button id="btnLoadCitasPago">Cargar citas</button>
-    <span id="pagoLoadMsg" class="muted"></span>
-  </div>
-
-  <br>
-
-  <div>
-    <label>Cita</label><br>
-    <select id="pago_cita"></select>
-  </div>
-
-  <br>
-
-  <div>
-    <label>Copago</label><br>
-    <input id="pago_copago" type="number" step="0.01" min="0" value="0">
-  </div>
-
-  <div>
-    <label>Medicina</label><br>
-    <input id="pago_medicina" type="number" step="0.01" min="0" value="0">
-  </div>
-
-  <div>
-    <label>Total (copago + medicina)</label><br>
-    <input id="pago_total" type="text" readonly value="0.00">
-  </div>
-
-  <div>
-    <label>Forma de pago</label><br>
-    <select id="pago_forma">
-      <option value="efectivo">efectivo</option>
-      <option value="transferencia">transferencia</option>
-    </select>
-  </div>
-
-  <div>
-    <label>Valor transferido</label><br>
-    <input id="pago_transferido" type="number" step="0.01" min="0" value="0">
-    <div class="muted">En efectivo debe ser 0. En transferencia debe ser igual al total.</div>
-  </div>
-
-  <div>
-    <label>Fecha de pago</label><br>
-    <input id="pago_fecha_pago" type="date">
-  </div>
-
-  <div>
-    <label>Observaciones</label><br>
-    <input id="pago_obs" placeholder="Opcional">
-  </div>
-
-  <br>
-  <button id="btnSavePago">Guardar pago</button>
-  <span id="pagoMsg"></span>
-
-  <div id="pagoEstado" class="muted" style="margin-top:10px;"></div>
-</div>
-
-<div class="box">
-  <h2>Reporte de pagos por fecha</h2>
-
-  <input id="rep_pago_fecha" type="date">
-  <button id="btnLoadPagosFecha">Cargar pagos</button>
-
-  <div id="repPagos" class="muted" style="margin-top:10px;">Seleccione una fecha.</div>
-</div>
-
-  
-
-<script>
-/* ======================
-   HELPERS
-====================== */
-const $ = (id) => document.getElementById(id);
-
-function setMsg(el, text, cls = "") {
-  el.textContent = text;
-  el.className = cls;
-}
-
-/* ======================
-   PACIENTES
-====================== */
-async function loadPacientes() {
-  const box = $("pacientesList");
-  box.textContent = "Cargando…";
-
-  try {
-    const res = await fetch("/api/paciente");
-    const data = await res.json();
-
-    if (!data.length) {
-      box.textContent = "No hay pacientes.";
-      return;
-    }
-
-    box.innerHTML = `
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th><th>CI</th><th>Nombre</th><th>Apellido</th><th>Teléfono</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${data.map(p => `
-            <tr>
-              <td>${p.id}</td>
-              <td>${p.ci}</td>
-              <td>${p.nombre}</td>
-              <td>${p.apellido}</td>
-              <td>${p.telefono || ""}</td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    `;
-  } catch {
-    box.textContent = "Error cargando pacientes.";
-  }
-}
-
-async function savePaciente() {
-  const msg = $("pacienteMsg");
-
-  const payload = {
-    ci: $("ci").value.trim(),
-    nombre: $("nombre").value.trim(),
-    apellido: $("apellido").value.trim(),
-    telefono: $("telefono").value.trim()
-  };
-
-  if (!payload.ci || !payload.nombre || !payload.apellido) {
-    setMsg(msg, "CI, nombre y apellido son obligatorios.", "error");
-    return;
-  }
-
-  setMsg(msg, "Guardando…", "muted");
-
-  try {
-    const res = await fetch("/api/paciente", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    const out = await res.json();
-    if (!res.ok) throw new Error(out.error);
-
-    setMsg(msg, "Paciente guardado.", "ok");
-    loadPacientes();
-  } catch (err) {
-    setMsg(msg, err.message, "error");
-  }
-}
-
-/* ======================
-   DIRECCIONES
-====================== */
-async function loadDirecciones() {
-  const pid = Number($("dir_paciente_id").value);
-  const box = $("dirsList");
-
-  if (!pid || pid <= 0) {
-    box.textContent = "ID de paciente inválido.";
-    return;
-  }
-
-  box.textContent = "Cargando…";
-
-  const res = await fetch(`/api/direccion?paciente_id=${pid}`);
-  const data = await res.json();
-
-  if (!data.length) {
-    box.textContent = "Este paciente no tiene direcciones.";
-    return;
-  }
-
-  box.innerHTML = `
-    <ul>
-      ${data.map(d => `
-        <li>
-          <strong>${d.direccion}</strong>
-          ${d.ciudad || ""} ${d.zona || ""}
-        </li>
-      `).join("")}
-    </ul>
-  `;
-}
-
-async function saveDireccion() {
-  const msg = $("dirMsg");
-  const pid = Number($("dir_paciente_id").value);
-
-  if (!pid || pid <= 0) {
-    setMsg(msg, "ID de paciente inválido.", "error");
-    return;
-  }
-
-  const payload = {
-    paciente_id: pid,
-    direccion: $("dir_direccion").value.trim(),
-    ciudad: $("dir_ciudad").value.trim(),
-    zona: $("dir_zona").value,
-    sector: $("dir_sector").value.trim(),
-    referencia: $("dir_referencia").value.trim()
-  };
-
-  if (!payload.direccion) {
-    setMsg(msg, "Dirección obligatoria.", "error");
-    return;
-  }
-
-  setMsg(msg, "Guardando…", "muted");
-
-  const res = await fetch("/api/direccion", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-
-  const out = await res.json();
-  if (!res.ok) {
-    setMsg(msg, out.error, "error");
-    return;
-  }
-
-  setMsg(msg, "Dirección guardada.", "ok");
-  loadDirecciones();
-}
-
-/* ======================
-   CITAS (UI)
-====================== */
-async function loadPacientesToSelect() {
-  const sel = $("cita_paciente");
-  sel.innerHTML = `<option value="">-- Seleccione --</option>`;
-
-  const res = await fetch("/api/paciente");
-  const data = await res.json();
-
-  data.forEach(p => {
-    const opt = document.createElement("option");
-    opt.value = p.id;
-    opt.textContent = `${p.id} - ${p.ci} - ${p.nombre} ${p.apellido}`;
-    sel.appendChild(opt);
-  });
-}
-
-async function loadDireccionesToSelect(pacienteId) {
-  const sel = $("cita_direccion");
-  sel.innerHTML = `<option value="">-- Seleccione dirección --</option>`;
-
-  if (!pacienteId) return;
-
-  const res = await fetch(`/api/direccion?paciente_id=${pacienteId}`);
-  const data = await res.json();
-
-  data.forEach(d => {
-    const opt = document.createElement("option");
-    opt.value = d.id;
-    opt.textContent = `${d.id} - ${d.direccion} ${d.ciudad ? (" - " + d.ciudad) : ""} ${d.zona ? (" (" + d.zona + ")") : ""}`;
-    sel.appendChild(opt);
-  });
-}
-
-async function saveCita() {
-  const msg = $("citaMsg");
-  const btn = $("btnSaveCita");
-
-  const paciente_id = Number($("cita_paciente").value);
-  const direccion_id = Number($("cita_direccion").value);
-  const fecha = $("cita_fecha").value;
-  const hora = $("cita_hora").value;
-  const sintomas = $("cita_sintomas").value.trim();
-
-  if (!paciente_id) return setMsg(msg, "Seleccione paciente.", "error");
-  if (!direccion_id) return setMsg(msg, "Seleccione dirección.", "error");
-  if (!fecha) return setMsg(msg, "Fecha es obligatoria.", "error");
-  if (!hora) return setMsg(msg, "Hora es obligatoria.", "error");
-
-  // bloqueo doble click
-  btn.disabled = true;
-  setMsg(msg, "Agendando…", "muted");
-
-  try {
-    const res = await fetch("/api/cita", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        paciente_id,
-        direccion_id,
-        seguro_id: null,
-        fecha,
-        hora,
-        sintomas
-      })
-    });
-
-    const out = await res.json();
-
-    if (!res.ok) {
-      throw new Error(out.error || "Error");
-    }
-
-    setMsg(msg, `Cita creada. ID=${out.id}`, "ok");
-    $("cita_sintomas").value = "";
-
-    // refrescar listado si está filtrado por la misma fecha
-    const f = $("filtro_fecha").value;
-    if (f && f === fecha) await loadCitasByFecha();
-  } catch (e) {
-    setMsg(msg, e.message, "error");
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-async function loadCitasByFecha() {
-  const fecha = $("filtro_fecha").value;
-  const box = $("citasList");
-
-  if (!fecha) {
-    box.textContent = "Seleccione una fecha.";
-    return;
-  }
-
-  box.textContent = "Cargando…";
-
-  const res = await fetch(`/api/cita?fecha=${fecha}`);
-  const data = await res.json();
-
-  if (!data.length) {
-    box.textContent = "No hay citas para esa fecha.";
-    return;
-  }
-
-  box.innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Paciente</th>
-          <th>Dirección</th>
-          <th>Fecha</th>
-          <th>Hora</th>
-          <th>Estado</th>
-          <th>Síntomas</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${data.map(c => `
-          <tr>
-            <td>${c.id}</td>
-            <td>${c.nombre} ${c.apellido} (${c.ci})</td>
-            <td>${c.direccion} ${c.ciudad || ""} ${c.zona || ""}</td>
-            <td>${c.fecha}</td>
-            <td>${c.hora}</td>
-            <td>${c.estado}</td>
-            <td>${c.sintomas || ""}</td>
-          </tr>
-        `).join("")}
-      </tbody>
-    </table>
-  `;
-}
-
-  /* ======================
-   PAGOS (UI)
-====================== */
-function money2(n) {
-  const x = Number(n);
-  if (!Number.isFinite(x)) return "0.00";
-  return (Math.round((x + Number.EPSILON) * 100) / 100).toFixed(2);
-}
-
-function calcPagoTotal() {
-  const cop = Number($("pago_copago").value || 0);
-  const med = Number($("pago_medicina").value || 0);
-  const total = cop + med;
-  $("pago_total").value = money2(total);
-
-  // auto-ajuste sugerido de transferido según forma
-  const forma = $("pago_forma").value;
-  if (forma === "transferencia") {
-    $("pago_transferido").value = money2(total);
-  } else {
-    $("pago_transferido").value = "0.00";
-  }
-}
-
-async function loadCitasForPago() {
-  const fecha = $("pago_fecha_citas").value;
-  const msg = $("pagoLoadMsg");
-  const sel = $("pago_cita");
-  sel.innerHTML = `<option value="">-- Seleccione cita --</option>`;
-  $("pagoEstado").textContent = "";
-
-  if (!fecha) {
-    msg.textContent = "Seleccione una fecha.";
-    return;
-  }
-
-  msg.textContent = "Cargando citas…";
-
-  // Traemos citas del día
-  const res = await fetch(`/api/cita?fecha=${fecha}`);
-  const citas = await res.json();
-
-  if (!citas.length) {
-    msg.textContent = "No hay citas para esa fecha.";
-    return;
-  }
-
-  // Por cada cita consultamos si ya tiene pago (simple y claro)
-  // Si luego quieres optimizar, hacemos un endpoint /api/cita con flag pagado.
-  for (const c of citas) {
-    let pagado = false;
-    try {
-      const rp = await fetch(`/api/pago?cita_id=${c.id}`);
-      const pagos = await rp.json();
-      pagado = Array.isArray(pagos) && pagos.length > 0;
-    } catch {}
-
-    const opt = document.createElement("option");
-    opt.value = c.id;
-    opt.textContent =
-      `Cita #${c.id} - ${c.hora} - ${c.nombre} ${c.apellido} - ${c.direccion}` +
-      (pagado ? " [PAGADA]" : "");
-    opt.dataset.pagado = pagado ? "1" : "0";
-    sel.appendChild(opt);
-  }
-
-  msg.textContent = "Citas cargadas.";
-}
-
-async function onSelectCitaPago() {
-  const sel = $("pago_cita");
-  const opt = sel.options[sel.selectedIndex];
-  const estado = $("pagoEstado");
-  const cita_id = Number(sel.value);
-
-  if (!cita_id) {
-    estado.textContent = "";
-    return;
-  }
-
-  // Consultar si ya tiene pago
-  const res = await fetch(`/api/pago?cita_id=${cita_id}`);
-  const data = await res.json();
-
-  if (Array.isArray(data) && data.length) {
-    const p = data[0];
-    estado.innerHTML = `<b>Esta cita YA tiene pago</b> (Pago #${p.id}) - ${p.forma_pago}, total: ${money2(p.total_recibido)}.`;
-    $("btnSavePago").disabled = true;
-  } else {
-    estado.textContent = "Esta cita no tiene pago aún.";
-    $("btnSavePago").disabled = false;
-  }
-}
-
-async function savePago() {
-  const msg = $("pagoMsg");
-  const btn = $("btnSavePago");
-
-  const cita_id = Number($("pago_cita").value);
-  const copago = Number($("pago_copago").value || 0);
-  const medicina = Number($("pago_medicina").value || 0);
-  const total = Number($("pago_total").value || 0);
-  const forma_pago = $("pago_forma").value;
-  const valor_transferido = Number($("pago_transferido").value || 0);
-  const fecha_pago = $("pago_fecha_pago").value;
-  const observaciones = $("pago_obs").value.trim();
-
-  if (!cita_id) return setMsg(msg, "Seleccione una cita.", "error");
-  if (!fecha_pago) return setMsg(msg, "Fecha de pago es obligatoria.", "error");
-  if (copago < 0 || medicina < 0) return setMsg(msg, "Montos no pueden ser negativos.", "error");
-
-  // validaciones de negocio (mismas que backend, para UX)
-  if (money2(copago + medicina) !== money2(total)) {
-    return setMsg(msg, "Total inconsistente (copago + medicina).", "error");
-  }
-  if (forma_pago === "efectivo" && money2(valor_transferido) !== "0.00") {
-    return setMsg(msg, "En efectivo, valor transferido debe ser 0.", "error");
-  }
-  if (forma_pago === "transferencia" && money2(valor_transferido) !== money2(total)) {
-    return setMsg(msg, "En transferencia, valor transferido debe igualar el total.", "error");
-  }
-
-  btn.disabled = true;
-  setMsg(msg, "Guardando pago…", "muted");
-
-  try {
-    const res = await fetch("/api/pago", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        cita_id,
-        copago,
-        medicina,
-        valor_transferido,
-        forma_pago,
-        fecha_pago,
-        observaciones
-      })
-    });
-
-    const out = await res.json();
-    if (!res.ok) throw new Error(out.error || "Error");
-
-    setMsg(msg, `Pago creado. ID=${out.id}`, "ok");
-
-    // refrescar estado de la cita seleccionada
-    await onSelectCitaPago();
-  } catch (e) {
-    setMsg(msg, e.message, "error");
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-async function loadPagosByFecha() {
-  const fecha = $("rep_pago_fecha").value;
-  const box = $("repPagos");
-  if (!fecha) {
-    box.textContent = "Seleccione una fecha.";
-    return;
-  }
-
-  box.textContent = "Cargando…";
-
-  const res = await fetch(`/api/pago?fecha=${fecha}`);
-  const data = await res.json();
-
-  if (!data.length) {
-    box.textContent = "No hay pagos para esa fecha.";
-    return;
-  }
-
-  // Totales
-  let totalDia = 0;
-  let totalEfectivo = 0;
-  let totalTransfer = 0;
-
-  for (const p of data) {
-    const t = Number(p.total_recibido || 0);
-    totalDia += t;
-    if (p.forma_pago === "efectivo") totalEfectivo += t;
-    if (p.forma_pago === "transferencia") totalTransfer += t;
-  }
-
-  box.innerHTML = `
-    <div><b>Total día:</b> ${money2(totalDia)} | <b>Efectivo:</b> ${money2(totalEfectivo)} | <b>Transferencia:</b> ${money2(totalTransfer)}</div>
-    <br>
-    <table>
-      <thead>
-        <tr>
-          <th>Pago</th>
-          <th>Cita</th>
-          <th>Paciente</th>
-          <th>Fecha/Hora</th>
-          <th>Forma</th>
-          <th>Total</th>
-          <th>Copago</th>
-          <th>Medicina</th>
-          <th>Obs</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${data.map(p => `
-          <tr>
-            <td>${p.id}</td>
-            <td>${p.cita_id}</td>
-            <td>${p.nombre} ${p.apellido} (${p.ci})</td>
-            <td>${p.cita_fecha} ${p.cita_hora}</td>
-            <td>${p.forma_pago}</td>
-            <td>${money2(p.total_recibido)}</td>
-            <td>${money2(p.copago)}</td>
-            <td>${money2(p.medicina)}</td>
-            <td>${p.observaciones || ""}</td>
-          </tr>
-        `).join("")}
-      </tbody>
-    </table>
-  `;
-}
-
-  
-/* ======================
-   EVENTOS (PASO 4)
-====================== */
-$("btnSavePaciente").addEventListener("click", savePaciente);
-$("btnReloadPacientes").addEventListener("click", loadPacientes);
-$("btnLoadDirs").addEventListener("click", loadDirecciones);
-$("btnSaveDir").addEventListener("click", saveDireccion);
-  // Eventos Citas
-$("cita_paciente").addEventListener("change", (e) => {
-  loadDireccionesToSelect(e.target.value);
-});
-
-$("btnSaveCita").addEventListener("click", saveCita);
-$("btnLoadCitas").addEventListener("click", loadCitasByFecha);
-
-// Eventos Pagos
-$("btnLoadCitasPago").addEventListener("click", loadCitasForPago);
-$("pago_cita").addEventListener("change", onSelectCitaPago);
-
-$("pago_copago").addEventListener("input", calcPagoTotal);
-$("pago_medicina").addEventListener("input", calcPagoTotal);
-$("pago_forma").addEventListener("change", calcPagoTotal);
-
-$("btnSavePago").addEventListener("click", savePago);
-
-$("btnLoadPagosFecha").addEventListener("click", loadPagosByFecha);
-
-  
-/* ======================
-   INIT
-====================== */
-loadPacientes();
-loadPacientesToSelect();
-
-  // Inicializar pagos: set fecha pago hoy (o mismo día)
-const today = new Date().toISOString().slice(0,10);
-$("pago_fecha_pago").value = today;
-$("rep_pago_fecha").value = today;
-calcPagoTotal();
-
-
-</script>
-
+  <script>
+    // Si tu módulo de "Citas" NO es /app/admin.html, dime el nombre del archivo
+    // (ej: cita.html) y lo cambiamos aquí y en el botón.
+  </script>
 </body>
 </html>
+
+
 
 
