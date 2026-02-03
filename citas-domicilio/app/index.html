@@ -70,6 +70,56 @@
   <span id="dirMsg"></span>
 </div>
 
+
+  <hr>
+
+<h1>Citas</h1>
+<p class="muted">API: /api/cita</p>
+
+<div class="box">
+  <h2>Nueva cita</h2>
+
+  <div>
+    <label>Paciente</label><br>
+    <select id="cita_paciente"></select>
+  </div>
+
+  <div>
+    <label>Dirección (obligatoria)</label><br>
+    <select id="cita_direccion"></select>
+  </div>
+
+  <div>
+    <label>Fecha</label><br>
+    <input id="cita_fecha" type="date">
+  </div>
+
+  <div>
+    <label>Hora</label><br>
+    <input id="cita_hora" type="time">
+  </div>
+
+  <div>
+    <label>Síntomas</label><br>
+    <input id="cita_sintomas" placeholder="Ej: dolor de cabeza">
+  </div>
+
+  <br>
+  <button id="btnSaveCita">Agendar cita</button>
+  <span id="citaMsg"></span>
+</div>
+
+<div class="box">
+  <h2>Listado por fecha</h2>
+
+  <input id="filtro_fecha" type="date">
+  <button id="btnLoadCitas">Cargar citas</button>
+
+  <div id="citasList" class="muted">Seleccione una fecha y cargue.</div>
+</div>
+
+  
+
 <script>
 /* ======================
    HELPERS
@@ -232,18 +282,166 @@ async function saveDireccion() {
 }
 
 /* ======================
+   CITAS (UI)
+====================== */
+async function loadPacientesToSelect() {
+  const sel = $("cita_paciente");
+  sel.innerHTML = `<option value="">-- Seleccione --</option>`;
+
+  const res = await fetch("/api/paciente");
+  const data = await res.json();
+
+  data.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    opt.textContent = `${p.id} - ${p.ci} - ${p.nombre} ${p.apellido}`;
+    sel.appendChild(opt);
+  });
+}
+
+async function loadDireccionesToSelect(pacienteId) {
+  const sel = $("cita_direccion");
+  sel.innerHTML = `<option value="">-- Seleccione dirección --</option>`;
+
+  if (!pacienteId) return;
+
+  const res = await fetch(`/api/direccion?paciente_id=${pacienteId}`);
+  const data = await res.json();
+
+  data.forEach(d => {
+    const opt = document.createElement("option");
+    opt.value = d.id;
+    opt.textContent = `${d.id} - ${d.direccion} ${d.ciudad ? (" - " + d.ciudad) : ""} ${d.zona ? (" (" + d.zona + ")") : ""}`;
+    sel.appendChild(opt);
+  });
+}
+
+async function saveCita() {
+  const msg = $("citaMsg");
+  const btn = $("btnSaveCita");
+
+  const paciente_id = Number($("cita_paciente").value);
+  const direccion_id = Number($("cita_direccion").value);
+  const fecha = $("cita_fecha").value;
+  const hora = $("cita_hora").value;
+  const sintomas = $("cita_sintomas").value.trim();
+
+  if (!paciente_id) return setMsg(msg, "Seleccione paciente.", "error");
+  if (!direccion_id) return setMsg(msg, "Seleccione dirección.", "error");
+  if (!fecha) return setMsg(msg, "Fecha es obligatoria.", "error");
+  if (!hora) return setMsg(msg, "Hora es obligatoria.", "error");
+
+  // bloqueo doble click
+  btn.disabled = true;
+  setMsg(msg, "Agendando…", "muted");
+
+  try {
+    const res = await fetch("/api/cita", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        paciente_id,
+        direccion_id,
+        seguro_id: null,
+        fecha,
+        hora,
+        sintomas
+      })
+    });
+
+    const out = await res.json();
+
+    if (!res.ok) {
+      throw new Error(out.error || "Error");
+    }
+
+    setMsg(msg, `Cita creada. ID=${out.id}`, "ok");
+    $("cita_sintomas").value = "";
+
+    // refrescar listado si está filtrado por la misma fecha
+    const f = $("filtro_fecha").value;
+    if (f && f === fecha) await loadCitasByFecha();
+  } catch (e) {
+    setMsg(msg, e.message, "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadCitasByFecha() {
+  const fecha = $("filtro_fecha").value;
+  const box = $("citasList");
+
+  if (!fecha) {
+    box.textContent = "Seleccione una fecha.";
+    return;
+  }
+
+  box.textContent = "Cargando…";
+
+  const res = await fetch(`/api/cita?fecha=${fecha}`);
+  const data = await res.json();
+
+  if (!data.length) {
+    box.textContent = "No hay citas para esa fecha.";
+    return;
+  }
+
+  box.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Paciente</th>
+          <th>Dirección</th>
+          <th>Fecha</th>
+          <th>Hora</th>
+          <th>Estado</th>
+          <th>Síntomas</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(c => `
+          <tr>
+            <td>${c.id}</td>
+            <td>${c.nombre} ${c.apellido} (${c.ci})</td>
+            <td>${c.direccion} ${c.ciudad || ""} ${c.zona || ""}</td>
+            <td>${c.fecha}</td>
+            <td>${c.hora}</td>
+            <td>${c.estado}</td>
+            <td>${c.sintomas || ""}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+  
+/* ======================
    EVENTOS (PASO 4)
 ====================== */
 $("btnSavePaciente").addEventListener("click", savePaciente);
 $("btnReloadPacientes").addEventListener("click", loadPacientes);
 $("btnLoadDirs").addEventListener("click", loadDirecciones);
 $("btnSaveDir").addEventListener("click", saveDireccion);
+  // Eventos Citas
+$("cita_paciente").addEventListener("change", (e) => {
+  loadDireccionesToSelect(e.target.value);
+});
+
+$("btnSaveCita").addEventListener("click", saveCita);
+$("btnLoadCitas").addEventListener("click", loadCitasByFecha);
+
 
 /* ======================
    INIT
 ====================== */
 loadPacientes();
+loadPacientesToSelect();
+
 </script>
 
 </body>
 </html>
+
