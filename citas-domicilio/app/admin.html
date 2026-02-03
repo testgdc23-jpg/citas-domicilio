@@ -554,8 +554,28 @@
     }
   })();
   
+<script>
+  // Espera a que el contenido se haya cargado
+  window.onload = function() {
+    // Si el hash en la URL es #estado, mostramos la sección "Estado de citas"
+    if (location.hash === "#estado") {
+      // Mostrar la sección Estado de citas
+      // (Este es un ejemplo, puedes mostrar la sección correspondiente aquí)
+      alert("Mostrar Estado de citas");
+
+    } else if (location.hash === "#citas") {
+      // Mostrar la sección Citas
+      alert("Mostrar Citas");
+
+    } else if (location.hash === "#pagos") {
+      // Mostrar la sección Pagos
+      alert("Mostrar Pagos");
+    }
+  };
 </script>
+
 </body>
 </html>
+
 
 
