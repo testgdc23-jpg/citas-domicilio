@@ -1,151 +1,235 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Pagos</title>
 
-  <!-- Estilos comunes (ya existentes en tu proyecto) -->
-  <link rel="stylesheet" href="/app/assets/css/styles.css" />
+  <link rel="stylesheet" href="/app/assets/css/styles.css"/>
 </head>
+
 <body class="app">
-  <div class="container">
-    <h1>Pagos</h1>
-    <p><a class="pill" href="/">← Volver</a></p>
 
-    <div id="msg" class="alert"></div>
+<div class="container">
+  <h1>Pagos</h1>
 
-    <!-- Selección -->
-    <div class="form-row">
-      <label>Paciente
-        <select id="selPaciente"><option value="">-- Selecciona un paciente --</option></select>
-      </label>
-      <label>Fecha (opcional)
-        <input type="date" id="fFecha" />
-      </label>
-      <button id="btnBuscarCitas" class="secondary" type="button">Buscar Citas</button>
-    </div>
+  <p><a class="pill" href="/">← Volver</a></p>
 
-    <div class="form-row">
-      <label>Cita
-        <select id="selCita" disabled><option value="">-- Selecciona primero un paciente --</option></select>
-      </label>
-      <button id="btnVerPago" class="secondary" type="button" disabled>Ver Pago</button>
-    </div>
+  <div id="msg" class="alert"></div>
 
-    <!-- Formulario Pago -->
-    <fieldset style="margin-top:16px; border:1px solid #223257; border-radius:10px; padding:12px;">
-      <legend>Crear / Editar pago</legend>
-      <div class="form-row">
-        <label>Copago
-          <input id="copago" type="number" step="0.01" min="0" value="0" />
-        </label>
-        <label>Medicina
-          <input id="medicina" type="number" step="0.01" min="0" value="0" />
-        </label>
-        <label>Total (auto)
-          <input id="total" type="number" step="0.01" min="0" value="0" disabled />
-        </label>
-        <label>Valor transferido
-          <input id="transferido" type="number" step="0.01" min="0" value="0" />
-        </label>
-        <label>Forma de pago
-          <select id="forma">
-            <option value="">(sin especificar)</option>
-            <option value="efectivo">Efectivo</option>
-            <option value="transferencia">Transferencia</option>
-          </select>
-        </label>
-        <label>Fecha pago
-          <input id="fechaPago" type="date" />
-        </label>
-        <label style="flex:1;">Observaciones
-          <input id="obs" placeholder="Notas del pago" />
-        </label>
-      </div>
-      <div class="form-row">
-        <button id="btnGuardar" type="button">Guardar</button>
-        <button id="btnBorrar" type="button" class="secondary" style="display:none;">Borrar pago</button>
-      </div>
-      <input type="hidden" id="pagoId" value="" />
-    </fieldset>
+  <!-- Selección -->
+  <div class="form-row">
+    <label>Paciente
+      <select id="selPaciente">
+        <option value="">-- Selecciona un paciente --</option>
+      </select>
+    </label>
 
-    <!-- Tabla (histórico rápido) -->
-    <h3 style="margin-top:18px;">Pagos recientes</h3>
-    <table class="table" id="tblPagos">
-      <thead>
-        <tr>
-          <th>ID</th><th>Cita</th><th>Copago</th><th>Medicina</th>
-          <th>Total</th><th>Transferido</th><th>Forma</th><th>Fecha</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <label>Fecha (opcional)
+      <input type="date" id="fFecha"/>
+    </label>
+
+    <button id="btnBuscarCitas" class="secondary" type="button">Buscar Citas</button>
   </div>
 
-  <!-- JS común (ya existente en tu proyecto) -->
-  <script src="/app/assets/js/common.js"></script>
+  <div class="form-row">
+    <label>Cita
+      <select id="selCita" disabled>
+        <option value="">-- Selecciona primero un paciente --</option>
+      </select>
+    </label>
 
-  <!-- Lógica de Pagos -->
-  <script>
-    const msg = document.querySelector('#msg');
-    const selPaciente = document.querySelector('#selPaciente');
-    const fFecha = document.querySelector('#fFecha');
-    const btnBuscarCitas = document.querySelector('#btnBuscarCitas');
+    <button id="btnVerPago" class="secondary" type="button" disabled>Ver Pago</button>
+  </div>
 
-    const selCita = document.querySelector('#selCita');
-    const btnVerPago = document.querySelector('#btnVerPago');
+  <!-- Formulario Pago -->
+  <fieldset style="margin-top:16px;border:1px solid #223257;border-radius:10px;padding:12px;">
+    <legend>Crear / Editar pago</legend>
 
-    const copagoEl = document.querySelector('#copago');
-    const medicinaEl = document.querySelector('#medicina');
-    const totalEl = document.querySelector('#total');
-    const transferidoEl = document.querySelector('#transferido');
-    const formaEl = document.querySelector('#forma');
-    const fechaPagoEl = document.querySelector('#fechaPago');
-    const obsEl = document.querySelector('#obs');
-    const btnGuardar = document.querySelector('#btnGuardar');
-    const btnBorrar = document.querySelector('#btnBorrar');
-    const pagoIdEl = document.querySelector('#pagoId');
+    <div class="form-row">
+      <label>Copago
+        <input id="copago" type="number" step="0.01" min="0" value="0"/>
+      </label>
 
-    const tbody = document.querySelector('#tblPagos tbody');
+      <label>Medicina
+        <input id="medicina" type="number" step="0.01" min="0" value="0"/>
+      </label>
 
-    function setTotal() {
-      const c = Number(copagoEl.value || 0);
-      const m = Number(medicinaEl.value || 0);
-      totalEl.value = (c + m).toFixed(2);
-    }
-    copagoEl.addEventListener('input', setTotal);
-    medicinaEl.addEventListener('input', setTotal);
+      <label>Total (auto)
+        <input id="total" type="number" value="0" disabled/>
+      </label>
 
-    async function cargarPacientes() {
-      const { data } = await api('/api/paciente');
-      data.sort((a,b)=>(a.apellido+a.nombre).localeCompare(b.apellido+b.nombre,'es'));
-      selPaciente.innerHTML = '<option value="">-- Selecciona un paciente --</option>' +
-        data.map(p => `<option value="${p.id}">${p.apellido.toUpperCase()}, ${p.nombre} (CI: ${p.ci})</option>`).join('');
-    }
+      <label>Valor transferido
+        <input id="transferido" type="number" step="0.01" min="0" value="0"/>
+      </label>
 
-    async function buscarCitas() {
-      const pid = Number(selPaciente.value);
-      const fe  = (fFecha.value || '').trim();
+      <label>Forma de pago
+        <select id="forma">
+          <option value="">(sin especificar)</option>
+          <option value="efectivo">Efectivo</option>
+          <option value="transferencia">Transferencia</option>
+        </select>
+      </label>
 
-      if (!pid) {
-        selCita.innerHTML = '<option value="">-- Selecciona un paciente --</option>';
-        selCita.disabled = true;
-        btnVerPago.disabled = true;
-        return setAlert(msg, 'Selecciona un paciente', true);
-      }
+      <label>Fecha pago
+        <input id="fechaPago" type="date"/>
+      </label>
 
-      const qs = new URLSearchParams();
-      qs.set('paciente_id', pid);
-      if (fe) qs.set('fecha', fe);
+      <label style="flex:1;">Observaciones
+        <input id="obs" placeholder="Notas del pago"/>
+      </label>
+    </div>
 
-      const { data } = await api(`/api/cita?${qs.toString()}`);
-      if (!Array.isArray(data) || data.length === 0) {
-        selCita.innerHTML = '<option value="">(Sin citas)</option>';
-        selCita.disabled = true;
-        btnVerPago.disabled = true;
-        return setAlert(msg, 'Este paciente no tiene citas (o no en esa fecha).');
-      }
+    <div class="form-row">
+      <button id="btnGuardar" type="button">Guardar</button>
+      <button id="btnBorrar" type="button" class="secondary" style="display:none;">Borrar pago</button>
+    </div>
 
-      selCita.innerHTML = '<option value="">-- Selecciona una cita --</option>' +
-        data.map(c => `<option value="${c.id}">#${c.id} · ${c.fecha} ${c.hora} · estado: ${c.estado}</option>`).join('');
+    <input type="hidden" id="pagoId" value=""/>
+  </fieldset>
+
+  <!-- Histórico -->
+  <h3 style="margin-top:18px;">Pagos recientes</h3>
+
+  <table class="table" id="tblPagos">
+    <thead>
+    <tr>
+      <th>ID</th><th>Cita</th><th>Copago</th><th>Medicina</th>
+      <th>Total</th><th>Transferido</th><th>Forma</th><th>Fecha</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+</div>
+
+<!-- JS COMÚN (DEBE IR ANTES DEL SCRIPT LOCAL) -->
+<script src="/app/assets/js/common.js"></script>
+
+<!-- Script local (Pagos) -->
+<script>
+
+/* --------------------------------------------------------------------------------
+ * UTILIDADES DEL DOM
+ * -------------------------------------------------------------------------------- */
+
+const msg = document.querySelector('#msg');
+const selPaciente = document.querySelector('#selPaciente');
+const fFecha = document.querySelector('#fFecha');
+const btnBuscarCitas = document.querySelector('#btnBuscarCitas');
+const selCita = document.querySelector('#selCita');
+const btnVerPago = document.querySelector('#btnVerPago');
+const copagoEl = document.querySelector('#copago');
+const medicinaEl = document.querySelector('#medicina');
+const totalEl = document.querySelector('#total');
+const transferidoEl = document.querySelector('#transferido');
+const formaEl = document.querySelector('#forma');
+const fechaPagoEl = document.querySelector('#fechaPago');
+const obsEl = document.querySelector('#obs');
+const btnGuardar = document.querySelector('#btnGuardar');
+const btnBorrar = document.querySelector('#btnBorrar');
+const pagoIdEl = document.querySelector('#pagoId');
+const tbody = document.querySelector('#tblPagos tbody');
+
+
+/* --------------------------------------------------------------------------------
+ * CALCULAR TOTAL
+ * -------------------------------------------------------------------------------- */
+
+function setTotal() {
+  const c = Number(copagoEl.value || 0);
+  const m = Number(medicinaEl.value || 0);
+  totalEl.value = (c + m).toFixed(2);
+}
+
+copagoEl.addEventListener('input', setTotal);
+medicinaEl.addEventListener('input', setTotal);
+
+
+/* --------------------------------------------------------------------------------
+ * CARGA DE PACIENTES (CORREGIDO Y FUNCIONAL)
+ * -------------------------------------------------------------------------------- */
+
+async function cargarPacientes() {
+
+  try {
+    // Usa la función api() de common.js — ya confirmamos que funciona perfecto
+    const payload = await api('/api/paciente');
+
+    const data = Array.isArray(payload.data) ? payload.data : [];
+
+    // Ordenar por apellido+nombre
+    data.sort((a,b) => (a.apellido + a.nombre).localeCompare(b.apellido + b.nombre, 'es'));
+
+    // Construir opciones
+    selPaciente.innerHTML =
+      '<option value="">-- Selecciona un paciente --</option>' +
+      data.map(p =>
+        `<option value="${p.id}">
+           ${p.apellido.toUpperCase()}, ${p.nombre} (CI: ${p.ci})
+         </option>`
+      ).join('');
+
+  } catch (err) {
+    console.error('Error cargando pacientes:', err);
+    selPaciente.innerHTML = '<option value="">(Error cargando pacientes)</option>';
+  }
+}
+
+
+/* --------------------------------------------------------------------------------
+ * BUSCAR CITAS (sin cambiar tu lógica original)
+ * -------------------------------------------------------------------------------- */
+
+async function buscarCitas() {
+
+  const pid = Number(selPaciente.value);
+  const fe = (fFecha.value || '').trim();
+
+  if (!pid) {
+    selCita.innerHTML = '<option value="">-- Selecciona un paciente --</option>';
+    selCita.disabled = true;
+    btnVerPago.disabled = true;
+    return setAlert(msg, 'Selecciona un paciente', true);
+  }
+
+  const qs = new URLSearchParams();
+  qs.set('paciente_id', pid);
+  if (fe) qs.set('fecha', fe);
+
+  const { data } = await api(`/api/cita?${qs.toString()}`);
+
+  if (!Array.isArray(data) || data.length === 0) {
+    selCita.innerHTML = '<option value="">(Sin citas)</option>';
+    selCita.disabled = true;
+    btnVerPago.disabled = true;
+    return setAlert(msg, 'Este paciente no tiene citas (o no en esa fecha).');
+  }
+
+  selCita.innerHTML =
+    '<option value="">-- Selecciona una cita --</option>' +
+    data.map(c =>
+      `<option value="${c.id}">
+         #${c.id} · ${c.fecha} ${c.hora} · estado: ${c.estado}
+       </option>`
+    ).join('');
+
+  selCita.disabled = false;
+  btnVerPago.disabled = false;
+}
+
+
+/* --------------------------------------------------------------------------------
+ * INICIALIZACIÓN
+ * -------------------------------------------------------------------------------- */
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await cargarPacientes();  // <--- ESTA ES LA CLAVE
+});
+
+btnBuscarCitas.addEventListener('click', buscarCitas);
+
+</script>
+
+</body>
+</html>
