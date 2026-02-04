@@ -1,5 +1,5 @@
 // /app/assets/js/common.js
-const BASE = '';
+const BASE = ''; // en producción, vacío
 
 async function api(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
@@ -7,13 +7,11 @@ async function api(path, options = {}) {
     ...options
   });
 
-  // Intenta leer texto y parsear JSON; si parece HTML, alerta mejor
   const text = await res.text();
   let data;
   try {
     data = JSON.parse(text);
   } catch {
-    // Si empieza con <!doctype o <html, es HTML de error
     if (/^\s*<!doctype|^\s*<html/i.test(text)) {
       throw new Error(`La URL ${path} devolvió HTML (posible 404/500 en Functions).`);
     }
