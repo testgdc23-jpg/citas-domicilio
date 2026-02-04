@@ -9,7 +9,8 @@
 <body class="app">
   <div class="container">
     <h1>Citas</h1>
-    <a class="pill" href="/">← Volver</a>
+    <p><a class="pill" href="/">← Volver</a></p>
+
     <div id="msg" class="alert"></div>
 
     <div class="form-row">
@@ -51,13 +52,13 @@
 
   <script src="/app/assets/js/common.js"></script>
   <script>
-    const tbody = $('#tbl tbody');
-    const msg = $('#msg');
+    const tbody = document.querySelector('#tbl tbody');
+    const msg = document.querySelector('#msg');
 
     async function listar() {
       const params = new URLSearchParams();
-      const p = $('#fPaciente').value.trim();
-      const f = $('#fFecha').value.trim();
+      const p = document.querySelector('#fPaciente').value.trim();
+      const f = document.querySelector('#fFecha').value.trim();
       if (p) params.set('paciente_id', p);
       if (f) params.set('fecha', f);
       const qs = params.toString() ? `?${params.toString()}` : '';
@@ -85,11 +86,11 @@
 
     async function crear() {
       const body = {
-        paciente_id: Number($('#pacienteId').value),
-        direccion_id: Number($('#direccionId').value),
-        fecha: $('#fecha').value,
-        hora: $('#hora').value,
-        sintomas: $('#sintomas').value
+        paciente_id: Number(document.querySelector('#pacienteId').value),
+        direccion_id: Number(document.querySelector('#direccionId').value),
+        fecha: document.querySelector('#fecha').value,
+        hora: document.querySelector('#hora').value,
+        sintomas: document.querySelector('#sintomas').value
       };
       if (!body.paciente_id || !body.direccion_id || !body.fecha || !body.hora) {
         return setAlert(msg, 'Campos requeridos: paciente/dirección/fecha/hora', true);
@@ -112,8 +113,8 @@
       }
     }
 
-    $('#btnCrear').addEventListener('click', crear);
-    $('#btnFiltrar').addEventListener('click', listar);
+    document.querySelector('#btnCrear').addEventListener('click', crear);
+    document.querySelector('#btnFiltrar').addEventListener('click', listar);
     addEventListener('DOMContentLoaded', listar);
   </script>
 </body>
