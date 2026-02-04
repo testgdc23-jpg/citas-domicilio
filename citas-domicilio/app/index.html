@@ -3,48 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin – Citas a Domicilio</title>
-  <style>
-    body{
-      background-color: #070b1a;
-      font-family: Arial, sans-serif;
-      color: #e8eeff;
-      padding: 20px;
-    }
-    .menu{
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    .menu a{
-      background: rgba(34, 211, 238, .2);
-      padding: 10px 15px;
-      text-decoration: none;
-      color: #fff;
-      border-radius: 12px;
-      font-size: 14px;
-    }
-    .menu a:hover{
-      background: rgba(34, 211, 238, .5);
-    }
-    h1{
-      font-size: 30px;
-    }
-  </style>
+  <title>Admin - Citas a Domicilio</title>
+  <link rel="stylesheet" href="/app/assets/css/styles.css" />
 </head>
-<body>
-  <h1>Admin - Citas a Domicilio</h1>
-  <div class="menu">
-    <a href="/app/pacientes.html">👤 Pacientes</a>
-    <a href="/app/estado.html">✅ Estado de Citas</a>
-    <a href="/app/citas.html">🗓️ Citas</a>
-    <a href="/app/pagos.html">💵 Pagos</a>
-    <a href="/api/health" target="_blank">🩺 Health</a>
-  </div>
-  <div class="info">
+<body class="app">
+  <header class="container">
+    <h1>Admin - Citas a Domicilio</h1>
+    <nav class="pill-menu">
+      <a class="pill" href="/app/pacientes.html">👤 Pacientes</a>
+      <a class="pill" href="/app/estado.html">✅ Estado de Citas</a>
+      <a class="pill" href="/app/citas.html">📅 Citas</a>
+      <a class="pill" href="/app/pagos.html">💵 Pagos</a>
+      <a class="pill" href="/app/health.html">🩺 Health</a>
+    </nav>
     <p>Este es el menú principal. Elige uno de los módulos.</p>
-  </div>
+  </header>
 </body>
 </html>
-
