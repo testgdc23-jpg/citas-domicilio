@@ -1,99 +1,181 @@
+// functions/api/direccion.js
 export async function onRequest(context) {
   const { request, env } = context;
+  const url = new URL(request.url);
+  const path = url.pathname; // /api/direccion o /api/direccion/:id
+  const idMatch = path.match(/\/api\/direccion\/(\d+)$/);
+  const id = idMatch ? Number(idMatch[1]) : null;
 
-  // GET /api/direccion?paciente_id=1  (listar direcciones de un paciente)
+  const json = (data, status = 200, headers = {}) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { "Content-Type": "application/json", ...headers },
+    });
+
+  const norm = (v) => (v ?? "").toString().trim();
+  const isEmpty = (v) => !v || v.length === 0;
+
+  async function patientExists(pacienteId) {
+    const row = await env.DB
+      .prepare("SELECT 1 AS ok FROM paciente WHERE id = ?")
+      .bind(pacienteId)
+      .first();
+    return !!row?.ok;
+  }
+
+  // ---------- GET ----------
   if (request.method === "GET") {
-    const url = new URL(request.url);
-    const paciente_id = url.searchParams.get("paciente_id");
+    // GET /api/direccion/:id
+    if (id) {
+      const row = await env.DB
+        .prepare(
+          "SELECT id, paciente_id, direccion, ciudad, zona, referencia, sector FROM direccion WHERE id = ?"
+        )
+        .bind(id)
+        .first();
 
-    if (!paciente_id) {
-      return new Response(JSON.stringify({ error: "Requerido: paciente_id" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      if (!row) return json({ ok: false, error: "Dirección no encontrada" }, 404);
+      return json({ ok: true, data: row });
     }
 
-    const pid = Number(paciente_id);
-    if (!Number.isFinite(pid) || pid <= 0) {
-      return new Response(JSON.stringify({ error: "paciente_id inválido" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+    // GET /api/direccion?paciente_id=...
+    const pacienteId = Number(url.searchParams.get("paciente_id") ?? 0);
+    if (pacienteId > 0) {
+      const { results } = await env.DB
+        .prepare(
+          `SELECT id, paciente_id, direccion, ciudad, zona, referencia, sector
+           FROM direccion
+           WHERE paciente_id = ?
+           ORDER BY id DESC`
+        )
+        .bind(pacienteId)
+        .all();
+
+      return json({ ok: true, data: results ?? [] });
     }
 
+    // GET /api/direccion (lista)
     const { results } = await env.DB
       .prepare(
         `SELECT id, paciente_id, direccion, ciudad, zona, referencia, sector
          FROM direccion
-         WHERE paciente_id = ?
          ORDER BY id DESC`
       )
-      .bind(pid)
       .all();
 
-    return new Response(JSON.stringify(results), {
-      headers: { "Content-Type": "application/json" },
-    });
+    return json({ ok: true, data: results ?? [] });
   }
 
-  // POST /api/direccion  (crear dirección)
+  // ---------- POST ----------
   if (request.method === "POST") {
     let body;
     try {
       body = await request.json();
     } catch {
-      return new Response(JSON.stringify({ error: "JSON inválido" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return json({ ok: false, error: "JSON inválido" }, 400);
     }
 
-    const paciente_id = Number(body.paciente_id);
-    const direccion = (body.direccion ?? "").toString().trim();
-    const ciudad = (body.ciudad ?? "").toString().trim();
-    const zona = (body.zona ?? "").toString().trim(); // "urbano" | "extraurbano" (recomendado)
-    const referencia = (body.referencia ?? "").toString().trim();
-    const sector = (body.sector ?? "").toString().trim();
+    const paciente_id = Number(body.paciente_id ?? 0);
+    const direccion = norm(body.direccion);
+    const ciudad = norm(body.ciudad);
+    const referencia = norm(body.referencia);
+    const sector = norm(body.sector);
+    let zona = norm(body.zona).toLowerCase();
 
-    if (!Number.isFinite(paciente_id) || paciente_id <= 0) {
-      return new Response(JSON.stringify({ error: "paciente_id inválido" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-    if (!direccion) {
-      return new Response(JSON.stringify({ error: "Campo requerido: direccion" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+    if (!(paciente_id > 0) || isEmpty(direccion)) {
+      return json(
+        { ok: false, error: "Campos requeridos: paciente_id, direccion" },
+        400
+      );
     }
 
-    // (Opcional recomendado) validar zona
-    if (zona && zona !== "urbano" && zona !== "extraurbano") {
-      return new Response(JSON.stringify({ error: "zona debe ser: urbano | extraurbano" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+    if (!["urbano", "extraurbano", ""].includes(zona)) zona = "urbano";
+
+    if (!(await patientExists(paciente_id))) {
+      return json({ ok: false, error: "Paciente no existe" }, 404);
     }
 
     try {
-      const result = await env.DB
+      const res = await env.DB
         .prepare(
-          `INSERT INTO direccion (paciente_id, direccion, ciudad, zona, referencia, sector)
+          `INSERT INTO direccion
+           (paciente_id, direccion, ciudad, zona, referencia, sector)
            VALUES (?, ?, ?, ?, ?, ?)`
         )
-        .bind(paciente_id, direccion, ciudad || null, zona || null, referencia || null, sector || null)
+        .bind(paciente_id, direccion, ciudad, zona || null, referencia, sector)
         .run();
 
-      return new Response(JSON.stringify({ ok: true, id: result.meta.last_row_id }), {
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (e) {
-      return new Response(JSON.stringify({ error: "Error al guardar dirección." }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
+      return json({ ok: true, id: res.meta?.last_row_id ?? null }, 201);
+    } catch {
+      return json({ ok: false, error: "Error al guardar dirección" }, 500);
     }
+  }
+
+  // ---------- PUT /api/direccion/:id ----------
+  if (request.method === "PUT") {
+    if (!id) return json({ ok: false, error: "Falta /:id en la ruta" }, 400);
+
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return json({ ok: false, error: "JSON inválido" }, 400);
+    }
+
+    const current = await env.DB
+      .prepare(
+        `SELECT id, paciente_id, direccion, ciudad, zona, referencia, sector
+         FROM direccion WHERE id = ?`
+      )
+      .bind(id)
+      .first();
+
+    if (!current) return json({ ok: false, error: "Dirección no encontrada" }, 404);
+
+    const paciente_id = body.paciente_id ? Number(body.paciente_id) : current.paciente_id;
+    const direccion = body.direccion !== undefined ? norm(body.direccion) : current.direccion;
+    const ciudad = body.ciudad !== undefined ? norm(body.ciudad) : current.ciudad;
+    const referencia = body.referencia !== undefined ? norm(body.referencia) : current.referencia;
+    const sector = body.sector !== undefined ? norm(body.sector) : current.sector;
+    let zona = body.zona !== undefined ? norm(body.zona).toLowerCase() : current.zona;
+
+    if (!(paciente_id > 0) || isEmpty(direccion)) {
+      return json({ ok: false, error: "paciente_id y direccion no pueden quedar vacíos" }, 400);
+    }
+    if (!["urbano", "extraurbano", ""].includes(zona)) zona = "urbano";
+
+    if (paciente_id !== current.paciente_id && !(await patientExists(paciente_id))) {
+      return json({ ok: false, error: "Paciente no existe" }, 404);
+    }
+
+    const res = await env.DB
+      .prepare(
+        `UPDATE direccion
+         SET paciente_id = ?, direccion = ?, ciudad = ?, zona = ?, referencia = ?, sector = ?
+         WHERE id = ?`
+      )
+      .bind(paciente_id, direccion, ciudad, zona || null, referencia, sector, id)
+      .run();
+
+    if ((res.meta?.changes ?? 0) === 0) {
+      return json({ ok: false, error: "Sin cambios" }, 200);
+    }
+    return json({ ok: true });
+  }
+
+  // ---------- DELETE /api/direccion/:id ----------
+  if (request.method === "DELETE") {
+    if (!id) return json({ ok: false, error: "Falta /:id en la ruta" }, 400);
+
+    const res = await env.DB
+      .prepare("DELETE FROM direccion WHERE id = ?")
+      .bind(id)
+      .run();
+
+    if ((res.meta?.changes ?? 0) === 0) {
+      return json({ ok: false, error: "Dirección no encontrada" }, 404);
+    }
+    return json({ ok: true });
   }
 
   return new Response("Method Not Allowed", { status: 405 });
