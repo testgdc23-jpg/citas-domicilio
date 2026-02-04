@@ -1,5 +1,5 @@
 // /app/assets/js/common.js
-const BASE = ''; // producción (Pages). En local puedes usar 'http://127.0.0.1:8788'
+const BASE = ''; // En producción (Pages), déjalo vacío. En local podrías usar 'http://127.0.0.1:8788' si corres wrangler pages dev.
 
 async function api(path, options = {}) {
   const url = `${BASE}${path}`;
@@ -8,16 +8,18 @@ async function api(path, options = {}) {
     ...options
   });
 
+  // Leemos texto para poder diagnosticar si viene HTML por error
   const text = await res.text();
   let data;
   try {
     data = JSON.parse(text);
   } catch {
+    // Si devuelve HTML, probablemente es un 404/500 de Pages/Functions
     if (/^\s*<!doctype|^\s*<html/i.test(text)) {
-      console.error('La URL devolvió HTML:', url, 'status:', res.status, 'body sample:', text.slice(0, 200));
+      console.error('La URL devolvió HTML:', url, 'status:', res.status, 'sample:', text.slice(0, 200));
       throw new Error(`La URL ${path} devolvió HTML (posible 404/500 en Functions).`);
     }
-    console.error('Respuesta no JSON:', url, 'status:', res.status, 'body sample:', text.slice(0, 200));
+    console.error('Respuesta no JSON:', url, 'status:', res.status, 'sample:', text.slice(0, 200));
     throw new Error(`Respuesta no JSON desde ${path}: ${text.slice(0, 120)}...`);
   }
 
