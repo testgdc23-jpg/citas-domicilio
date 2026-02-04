@@ -1,5 +1,4 @@
-export const onRequest = async () => {
-  return new Response(JSON.stringify({ ok: true }), {
-    headers: { "Content-Type": "application/json; charset=utf-8" },
-  });
-};
+export async function onRequest({ env }) {
+  const row = await env.DB.prepare('SELECT 1 AS ok').first();
+  return Response.json({ ok: row?.ok === 1 });
+}
