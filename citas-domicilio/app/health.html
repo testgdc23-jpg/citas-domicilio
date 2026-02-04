@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Health</title>
+  <link rel="stylesheet" href="/app/assets/css/styles.css" />
+</head>
+<body class="app">
+  <div class="container">
+    <h1>Health</h1>
+    <p><a class="pill" href="/">← Volver</a></p>
+    <div id="msg" class="alert"></div>
+    <pre id="out">Cargando...</pre>
+  </div>
+
+  <script src="/app/assets/js/common.js"></script>
+  <script>
+    const out = document.querySelector('#out'), msg = document.querySelector('#msg');
+    (async () => {
+      try {
+        const data = await api('/api/health');
+        out.textContent = JSON.stringify(data, null, 2);
+      } catch (e) {
+        setAlert(msg, e.message, true);
+      }
+    })();
+  </script>
+</body>
+</html>
