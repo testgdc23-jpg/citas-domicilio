@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Citas</title>
+  <link rel="stylesheet" href="/app/assets/css/styles.css" />
+</head>
+<body class="app">
+  <div class="container">
+    <h1>Citas</h1>
+    <a class="pill" href="/">← Volver</a>
+    <div id="msg" class="alert"></div>
+
+    <div class="form-row">
+      <label>Paciente ID
+        <input id="pacienteId" type="number" min="1" />
+      </label>
+      <label>Dirección ID
+        <input id="direccionId" type="number" min="1" />
+      </label>
+      <label>Fecha
+        <input id="fecha" type="date" />
+      </label>
+      <label>Hora
+        <input id="hora" type="time" />
+      </label>
+      <label>Síntomas
+        <input id="sintomas" />
+      </label>
+      <button id="btnCrear">Crear cita</button>
+    </div>
+
+    <div class="form-row">
+      <label>Filtrar por Paciente ID
+        <input id="fPaciente" type="number" min="1" />
+      </label>
+      <label>Filtrar por Fecha
+        <input id="fFecha" type="date" />
+      </label>
+      <button id="btnFiltrar" class="secondary">Filtrar</button>
+    </div>
+
+    <table class="table" id="tbl">
+      <thead>
+        <tr><th>ID</th><th>Paciente</th><th>Dirección</th><th>Fecha</th><th>Hora</th><th>Estado</th><th>Mov.</th><th>Acciones</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script src="/app/assets/js/common.js"></script>
+  <script>
+    const tbody = $('#tbl tbody');
+    const msg = $('#msg');
+
+    async function listar() {
+      const params = new URLSearchParams();
+      const p = $('#fPaciente').value.trim();
+      const f = $('#fFecha').value.trim();
+      if (p) params.set('paciente_id', p);
+      if (f) params.set('fecha', f);
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      try {
+        const { data } = await api(`/api/cita${qs}`);
+        tbody.innerHTML = data.map(c => `
+          <tr>
+            <td>${c.id}</td>
+            <td>${c.paciente_id}</td>
+            <td>${c.direccion_id}</td>
+            <td>${c.fecha}</td>
+            <td>${c.hora}</td>
+            <td>${c.estado}</td>
+            <td>${c.movimiento ?? 0}</td>
+            <td class="actions">
+              <button onclick="cambiarEstado(${c.id}, 'confirmada')">Confirmar</button>
+              <button onclick="cambiarEstado(${c.id}, 'cancelada')" class="secondary">Cancelar</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        setAlert(msg, e.message, true);
+      }
+    }
+
+    async function crear() {
+      const body = {
+        paciente_id: Number($('#pacienteId').value),
+        direccion_id: Number($('#direccionId').value),
+        fecha: $('#fecha').value,
+        hora: $('#hora').value,
+        sintomas: $('#sintomas').value
+      };
+      if (!body.paciente_id || !body.direccion_id || !body.fecha || !body.hora) {
+        return setAlert(msg, 'Campos requeridos: paciente/dirección/fecha/hora', true);
+      }
+      try {
+        const r = await api('/api/cita', { method: 'POST', body: JSON.stringify(body) });
+        setAlert(msg, `Cita creada (id ${r.id})`);
+        await listar();
+      } catch (e) {
+        setAlert(msg, e.message, true);
+      }
+    }
+
+    async function cambiarEstado(id, nuevo) {
+      try {
+        await api('/api/cita_estado', { method: 'POST', body: JSON.stringify({ cita_id: id, nuevo_estado: nuevo }) });
+        await listar();
+      } catch (e) {
+        setAlert(msg, e.message, true);
+      }
+    }
+
+    $('#btnCrear').addEventListener('click', crear);
+    $('#btnFiltrar').addEventListener('click', listar);
+    addEventListener('DOMContentLoaded', listar);
+  </script>
+</body>
+</html>
