@@ -1,4 +1,3 @@
-// functions/api/pago/[id].js
 export async function onRequest(context) {
   const { request, env, params } = context;
   const { id } = params;
@@ -47,12 +46,12 @@ export async function onRequest(context) {
       .first();
     if (!current) return json({ ok:false, error:"Pago no encontrado" }, 404);
 
-    const copago            = (body.copago !== undefined) ? Number(body.copago) : current.copago;
-    const medicina          = (body.medicina !== undefined) ? Number(body.medicina) : current.medicina;
+    const copago            = (body.copago            !== undefined) ? Number(body.copago)            : current.copago;
+    const medicina          = (body.medicina          !== undefined) ? Number(body.medicina)          : current.medicina;
     const valor_transferido = (body.valor_transferido !== undefined) ? Number(body.valor_transferido) : current.valor_transferido;
-    const forma_pago        = (body.forma_pago !== undefined) ? norm(body.forma_pago) : current.forma_pago;
-    const fecha_pago        = (body.fecha_pago !== undefined) ? (body.fecha_pago ?? "").toString().trim() || null : current.fecha_pago;
-    const observaciones     = (body.observaciones !== undefined) ? (body.observaciones ?? "").toString().trim() || null : current.observaciones;
+    const forma_pago        = (body.forma_pago        !== undefined) ? norm(body.forma_pago)          : current.forma_pago;
+    const fecha_pago        = (body.fecha_pago        !== undefined) ? (body.fecha_pago ?? "").toString().trim() || null : current.fecha_pago;
+    const observaciones     = (body.observaciones     !== undefined) ? (body.observaciones ?? "").toString().trim() || null : current.observaciones;
 
     if (copago < 0 || medicina < 0 || valor_transferido < 0) {
       return json({ ok:false, error:"Montos no pueden ser negativos" }, 400);
@@ -61,7 +60,6 @@ export async function onRequest(context) {
       return json({ ok:false, error:"forma_pago inválida" }, 400);
     }
 
-    // Recalcular total para cumplir el CHECK
     const total_recibido = copago + medicina;
 
     const res = await env.DB
