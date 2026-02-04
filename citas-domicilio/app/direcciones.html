@@ -13,7 +13,7 @@
 
     <div id="msg" class="alert"></div>
 
-    <!-- Filtro / selector de paciente -->
+    <!-- Selector de paciente -->
     <div class="form-row">
       <label>Paciente
         <select id="selPaciente">
@@ -49,7 +49,7 @@
       </div>
 
       <div class="form-row">
-        <button id="btnGuardar">Guardar</button>
+        <button id="btnGuardar" type="button">Guardar</button>
         <button id="btnCancelar" class="secondary" type="button" style="display:none;">Cancelar edición</button>
       </div>
       <input type="hidden" id="editId" value="" />
@@ -95,7 +95,6 @@
       try {
         const { ok, data } = await api('/api/paciente');
         if (!ok) throw new Error('No se pudo cargar pacientes');
-        // Ordena por apellido/nombre para que sea más fácil
         data.sort((a, b) => (a.apellido + a.nombre).localeCompare(b.apellido + b.nombre, 'es'));
         selPaciente.innerHTML = '<option value="">-- Selecciona un paciente --</option>' +
           data.map(p => `<option value="${p.id}">${p.apellido.toUpperCase()}, ${p.nombre} (CI: ${p.ci})</option>`).join('');
@@ -117,7 +116,7 @@
         if (!ok) throw new Error('No se pudo cargar direcciones');
         if (!Array.isArray(data)) throw new Error('Respuesta inesperada del servidor');
         tbody.innerHTML = data.map(d => `
-          <tr>
+          <tr data-id="${d.id}">
             <td>${d.id}</td>
             <td>${d.direccion}</td>
             <td>${d.ciudad ?? ''}</td>
@@ -125,8 +124,8 @@
             <td>${d.referencia ?? ''}</td>
             <td>${d.zona ?? ''}</td>
             <td class="actions">
-              <button onclick="editarDir(${d.id})">Editar</button>
-              <button class="secondary" onclick="borrarDir(${d.id})">Borrar</button>
+              <button onclick="editarDir(${Number(d.id)})">Editar</button>
+              <button class="secondary" onclick="borrarDir(${Number(d.id)})">Borrar</button>
             </td>
           </tr>
         `).join('');
@@ -152,23 +151,20 @@
         zona: zona.value.trim().toLowerCase()
       };
 
-      if (!body.direccion) {
-        return setAlert(msg, 'La dirección es obligatoria', true);
-      }
+      if (!body.direccion) return setAlert(msg, 'La dirección es obligatoria', true);
       if (body.zona && !['urbano', 'extraurbano'].includes(body.zona)) {
         return setAlert(msg, "Zona debe ser 'urbano' o 'extraurbano'", true);
       }
 
       try {
         if (editId.value) {
-          // UPDATE
-          await api(`/api/direccion/${Number(editId.value)}`, {
+          const dirId = Number(editId.value);
+          await api(`/api/direccion/${dirId}`, {
             method: 'PUT',
             body: JSON.stringify(body)
           });
           setAlert(msg, 'Dirección actualizada');
         } else {
-          // INSERT
           const r = await api('/api/direccion', {
             method: 'POST',
             body: JSON.stringify(body)
@@ -183,38 +179,35 @@
     }
 
     // ---- Editar ----
-  window.editarDir = async function(id) {
-    try {
-      const dirId = Number(String(id).trim());
-      if (!Number.isFinite(dirId) || dirId <= 0) {
-        throw new Error('ID de dirección inválido');
+    window.editarDir = async function(id) {
+      try {
+        const dirId = Number(String(id).trim());
+        if (!Number.isFinite(dirId) || dirId <= 0) throw new Error('ID de dirección inválido');
+
+        const { ok, data } = await api(`/api/direccion/${dirId}`); // ahora sí es JSON (gracias a [id].js)
+        if (!ok || !data) throw new Error('No se encontró la dirección');
+
+        editId.value = data.id;
+        direccion.value = data.direccion ?? '';
+        ciudad.value = data.ciudad ?? '';
+        sector.value = data.sector ?? '';
+        referencia.value = data.referencia ?? '';
+        zona.value = (data.zona ?? '').toLowerCase();
+
+        btnCancelar.style.display = 'inline-block';
+        direccion.focus();
+      } catch (e) {
+        setAlert(msg, e.message, true);
+        console.error('editarDir error:', e);
       }
-
-      // Llamada estricta a /api/direccion/:id (sin barra final)
-      const { ok, data } = await api(`/api/direccion/${dirId}`);
-      if (!ok || !data) throw new Error('No se encontró la dirección');
-
-      // Rellena el formulario
-      document.querySelector('#editId').value = data.id;
-      document.querySelector('#direccion').value = data.direccion ?? '';
-      document.querySelector('#ciudad').value = data.ciudad ?? '';
-      document.querySelector('#sector').value = data.sector ?? '';
-      document.querySelector('#referencia').value = data.referencia ?? '';
-      document.querySelector('#zona').value = (data.zona ?? '').toLowerCase();
-
-      document.querySelector('#btnCancelar').style.display = 'inline-block';
-      document.querySelector('#direccion').focus();
-    } catch (e) {
-      setAlert(document.querySelector('#msg'), e.message, true);
-      console.error('editarDir error:', e);
     }
-  }
 
     // ---- Borrar ----
     window.borrarDir = async function(id) {
       if (!confirm('¿Eliminar esta dirección?')) return;
       try {
-        await api(`/api/direccion/${id}`, { method: 'DELETE' });
+        const dirId = Number(String(id).trim());
+        await api(`/api/direccion/${dirId}`, { method: 'DELETE' });
         await cargarDirecciones();
       } catch (e) {
         setAlert(msg, e.message, true);
@@ -235,15 +228,12 @@
     btnCargar.addEventListener('click', cargarDirecciones);
     btnGuardar.addEventListener('click', guardar);
     btnCancelar.addEventListener('click', limpiarFormulario);
-    selPaciente.addEventListener('change', () => {
-      limpiarFormulario();
-      cargarDirecciones();
-    });
+    selPaciente.addEventListener('change', () => { limpiarFormulario(); cargarDirecciones(); });
 
     // Carga inicial
     addEventListener('DOMContentLoaded', async () => {
       await cargarPacientes();
-      // Si quieres que cargue automáticamente las direcciones del primero:
+      // Si quieres cargar automáticamente la del 1er paciente:
       // selPaciente.selectedIndex = 1; cargarDirecciones();
     });
   </script>
