@@ -1,6 +1,5 @@
-<script>
-// Si pruebas local con wrangler pages dev, puedes poner BASE='http://127.0.0.1:8788'
-const BASE = '';
+// /app/assets/js/common.js
+const BASE = ''; // en producción, vacío. Si pruebas local, pon 'http://127.0.0.1:8788'
 
 async function api(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
@@ -15,7 +14,8 @@ async function api(path, options = {}) {
 }
 
 function setAlert(el, msg, isErr=false) {
-  el.textContent = msg; el.classList.toggle('error', isErr);
-  el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 3000);
+  el.textContent = msg;
+  el.classList.toggle('error', isErr);
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
 }
-</script>
