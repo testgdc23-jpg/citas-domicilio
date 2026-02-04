@@ -1,5 +1,5 @@
 <script>
-// Base para producción (Pages). Si pruebas local, cambia a tu URL local.
+// Si pruebas local con wrangler pages dev, puedes poner BASE='http://127.0.0.1:8788'
 const BASE = '';
 
 async function api(path, options = {}) {
@@ -14,8 +14,6 @@ async function api(path, options = {}) {
   return data;
 }
 
-function $(sel, root = document) { return root.querySelector(sel); }
-function $all(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
 function setAlert(el, msg, isErr=false) {
   el.textContent = msg; el.classList.toggle('error', isErr);
   el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 3000);
