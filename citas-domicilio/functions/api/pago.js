@@ -1,4 +1,3 @@
-// functions/api/pago.js
 export async function onRequest({ request, env }) {
   const url = new URL(request.url);
 
@@ -47,8 +46,8 @@ export async function onRequest({ request, env }) {
     const copago           = Number(body.copago ?? 0);
     const medicina         = Number(body.medicina ?? 0);
     const valor_transferido= Number(body.valor_transferido ?? 0);
-    const forma_pago       = norm(body.forma_pago || ""); // puede ser null
-    const fecha_pago       = (body.fecha_pago ?? "").toString().trim() || null; // YYYY-MM-DD
+    const forma_pago       = norm(body.forma_pago || "");
+    const fecha_pago       = (body.fecha_pago ?? "").toString().trim() || null;
     const observaciones    = (body.observaciones ?? "").toString().trim() || null;
 
     if (!(cita_id > 0)) return json({ ok:false, error:"cita_id requerido" }, 400);
@@ -58,13 +57,10 @@ export async function onRequest({ request, env }) {
     if (forma_pago && !["efectivo","transferencia"].includes(forma_pago)) {
       return json({ ok:false, error:"forma_pago inválida" }, 400);
     }
-
-    // FK y 1:1
     if (!(await exists("cita", cita_id))) {
       return json({ ok:false, error:"Cita no existe" }, 404);
     }
 
-    // Cumplir CHECK: total_recibido = copago + medicina
     const total_recibido = copago + medicina;
 
     try {
@@ -83,7 +79,6 @@ export async function onRequest({ request, env }) {
       if (msg.includes("UNIQUE") || msg.includes("idx_pago_cita_unq")) {
         return json({ ok:false, error:"Ya existe pago para esta cita" }, 409);
       }
-      // También atrapará violaciones del CHECK si algo no calza
       return json({ ok:false, error:"Error al crear pago" }, 500);
     }
   }
