@@ -1,190 +1,163 @@
-export async function onRequest(context) {
-  const { request, env } = context;
+// functions/api/cita.js
+export async function onRequest({ request, env }) {
+  const url = new URL(request.url);
+  const path = url.pathname; // /api/cita o /api/cita/:id
+  const idMatch = path.match(/\/api\/cita\/(\d+)$/);
+  const id = idMatch ? Number(idMatch[1]) : null;
 
-  // helper JSON
-  function json(obj, status = 200) {
-    return new Response(JSON.stringify(obj), {
-      status,
-      headers: { "Content-Type": "application/json" },
-    });
+  const json = (data, status = 200) =>
+    new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
+
+  const norm = (v) => (v ?? "").toString().trim().toLowerCase();
+
+  async function exists(table, id) {
+    const row = await env.DB.prepare(`SELECT 1 AS ok FROM ${table} WHERE id = ?`).bind(id).first();
+    return !!row?.ok;
   }
 
-  try {
-    // =========================
-    // GET /api/cita
-    // Opcional filtros:
-    //  - paciente_id=1
-    //  - fecha=2026-02-01
-    // =========================
-      if (request.method === "GET") {
-        const url = new URL(request.url);
+  // ---------- GET ----------
+  if (request.method === "GET") {
+    // detalle
+    if (id) {
+      const row = await env.DB.prepare(
+        `SELECT c.id, c.paciente_id, c.direccion_id, c.seguro_id, c.fecha, c.hora,
+                c.sintomas, c.asistencia, c.movimiento, c.estado
+         FROM cita c
+         WHERE c.id = ?`
+      ).bind(id).first();
 
-        const paciente_id = url.searchParams.get("paciente_id");
-        const fecha = url.searchParams.get("fecha");
-
-        let sql = `
-          SELECT
-            c.id,
-            c.paciente_id,
-            p.ci,
-            p.nombre,
-            p.apellido,
-            c.direccion_id,
-            d.direccion,
-            d.ciudad,
-            d.zona,
-            d.sector,
-            c.seguro_id,
-            s.nombre as seguro_nombre,
-            c.fecha,
-            c.hora,
-            c.estado,
-            c.sintomas
-          FROM cita c
-          JOIN paciente p ON p.id = c.paciente_id
-          JOIN direccion d ON d.id = c.direccion_id
-          LEFT JOIN seguro s ON s.id = c.seguro_id
-          WHERE 1=1
-        `;
-
-        const binds = [];
-
-        if (paciente_id) {
-          sql += ` AND c.paciente_id = ? `;
-          binds.push(Number(paciente_id));
-        }
-
-        if (fecha) {
-          sql += ` AND c.fecha = ? `;
-          binds.push(String(fecha));
-        }
-
-        sql += " ORDER BY c.id DESC ";
-
-        const stmt = env.DB.prepare(sql);
-        const { results } = binds.length
-          ? await stmt.bind(...binds).all()
-          : await stmt.all();
-
-        return json(results, 200);
-      }
-
-    // =========================
-    // POST /api/cita
-    // Body:
-    // {
-    //   "paciente_id": 1,
-    //   "direccion_id": 2,
-    //   "seguro_id": 1 (opcional),
-    //   "fecha": "2026-02-01",
-    //   "hora": "14:30",
-    //   "sintomas": "..."
-    // }
-    // =========================
-    if (request.method === "POST") {
-      let body;
-      try {
-        body = await request.json();
-      } catch {
-        return json({ error: "JSON inválido" }, 400);
-      }
-
-      const paciente_id = Number(body.paciente_id);
-      const direccion_id = Number(body.direccion_id);
-
-      const seguro_id_raw = body.seguro_id;
-      const seguro_id =
-        seguro_id_raw === null || seguro_id_raw === undefined || seguro_id_raw === ""
-          ? null
-          : Number(seguro_id_raw);
-
-      const fecha = (body.fecha ?? "").toString().trim();
-      const hora = (body.hora ?? "").toString().trim();
-      const sintomas = (body.sintomas ?? "").toString().trim();
-
-      if (!Number.isFinite(paciente_id) || paciente_id <= 0) {
-        return json({ error: "paciente_id inválido" }, 400);
-      }
-      if (!Number.isFinite(direccion_id) || direccion_id <= 0) {
-        return json({ error: "direccion_id inválido" }, 400);
-      }
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-        return json({ error: "fecha inválida (use YYYY-MM-DD)" }, 400);
-      }
-      // acepta HH:MM o HH:MM:SS
-      if (!/^\d{2}:\d{2}(:\d{2})?$/.test(hora)) {
-        return json({ error: "hora inválida (use HH:MM)" }, 400);
-      }
-      if (seguro_id !== null && (!Number.isFinite(seguro_id) || seguro_id <= 0)) {
-        return json({ error: "seguro_id inválido" }, 400);
-      }
-
-      // 1) Validar que el paciente exista
-      {
-        const { results } = await env.DB
-          .prepare("SELECT id FROM paciente WHERE id = ? LIMIT 1")
-          .bind(paciente_id)
-          .all();
-
-        if (!results.length) {
-          return json({ error: "No existe el paciente." }, 404);
-        }
-      }
-
-      // 2) Validar que la dirección exista Y pertenezca al paciente
-      {
-        const { results } = await env.DB
-          .prepare("SELECT id FROM direccion WHERE id = ? AND paciente_id = ? LIMIT 1")
-          .bind(direccion_id, paciente_id)
-          .all();
-
-        if (!results.length) {
-          return json({ error: "La dirección no existe o no pertenece al paciente." }, 409);
-        }
-      }
-
-      // 3) (Opcional) validar seguro si viene
-      if (seguro_id !== null) {
-        const { results } = await env.DB
-          .prepare("SELECT id FROM seguro WHERE id = ? LIMIT 1")
-          .bind(seguro_id)
-          .all();
-
-        if (!results.length) {
-          return json({ error: "No existe el seguro." }, 404);
-        }
-      }
-
-      // 4) Insertar cita (estado por defecto)
-      const estado = "agendada";
-
-      try {
-        const result = await env.DB
-          .prepare(`
-            INSERT INTO cita (paciente_id, direccion_id, seguro_id, fecha, hora, sintomas, estado)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-          `)
-          .bind(paciente_id, direccion_id, seguro_id, fecha, hora, sintomas || null, estado)
-          .run();
-
-        return json({ ok: true, id: result.meta.last_row_id }, 200);
-      } catch (e) {
-        // D1/SQLite devuelve errores de UNIQUE constraint cuando choca un índice unique
-        const msg = String(e && (e.message || e));
-        if (msg.includes("UNIQUE constraint failed") || msg.includes("constraint failed")) {
-          return json(
-            { error: "Ya existe una cita para ese paciente, dirección, fecha y hora." },
-            409
-          );
-        }
-        return json({ error: "Error al guardar cita." }, 500);
-      }
+      if (!row) return json({ ok: false, error: "Cita no encontrada" }, 404);
+      return json({ ok: true, data: row });
     }
 
-    return json({ error: "Method Not Allowed" }, 405);
-  } catch (err) {
-    // Esto evita el error del frontend:
-    // "Failed to execute 'json' on 'Response': Unexpected end of JSON input"
-    return json({ error: String(err?.message || err || "Error interno") }, 500);
+    // filtros opcionales: paciente_id, fecha
+    const pacienteId = Number(url.searchParams.get("paciente_id") ?? 0);
+    const fecha = url.searchParams.get("fecha") ?? "";
+    let sql = `SELECT id, paciente_id, direccion_id, seguro_id, fecha, hora, sintomas, asistencia, movimiento, estado
+               FROM cita`;
+    const params = [];
+    const where = [];
+
+    if (pacienteId > 0) { where.push("paciente_id = ?"); params.push(pacienteId); }
+    if (fecha) { where.push("fecha = ?"); params.push(fecha); }
+
+    if (where.length) sql += " WHERE " + where.join(" AND ");
+    sql += " ORDER BY fecha DESC, hora DESC, id DESC";
+
+    const { results } = await env.DB.prepare(sql).bind(...params).all();
+    return json({ ok: true, data: results ?? [] });
   }
+
+  // ---------- POST (crear) ----------
+  if (request.method === "POST") {
+    let body;
+    try { body = await request.json(); } catch { return json({ ok: false, error: "JSON inválido" }, 400); }
+
+    const paciente_id = Number(body.paciente_id ?? 0);
+    const direccion_id = Number(body.direccion_id ?? 0);
+    const seguro_id = body.seguro_id ? Number(body.seguro_id) : null;
+    const fecha = (body.fecha ?? "").toString().trim(); // YYYY-MM-DD
+    const hora = (body.hora ?? "").toString().trim();   // HH:MM
+    const sintomas = (body.sintomas ?? "").toString().trim();
+    const estado = norm(body.estado || "agendada");     // default
+
+    if (!(paciente_id > 0) || !(direccion_id > 0) || !fecha || !hora) {
+      return json({ ok: false, error: "Campos requeridos: paciente_id, direccion_id, fecha, hora" }, 400);
+    }
+    if (!["agendada","confirmada","atendida","cancelada","reprogramada"].includes(estado)) {
+      return json({ ok: false, error: "Estado inválido" }, 400);
+    }
+
+    // Verificar FKs
+    const [okPac, okDir] = await Promise.all([exists("paciente", paciente_id), exists("direccion", direccion_id)]);
+    if (!okPac) return json({ ok: false, error: "Paciente no existe" }, 404);
+    if (!okDir) return json({ ok: false, error: "Dirección no existe" }, 404);
+
+    try {
+      const res = await env.DB
+        .prepare(
+          `INSERT INTO cita
+           (paciente_id, direccion_id, seguro_id, fecha, hora, sintomas, asistencia, movimiento, estado)
+           VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?)`
+        )
+        .bind(paciente_id, direccion_id, seguro_id, fecha, hora, sintomas || null, estado)
+        .run();
+
+      return json({ ok: true, id: res.meta?.last_row_id ?? null }, 201);
+    } catch (e) {
+      const msg = String(e?.message ?? e);
+      if (msg.includes("UNIQUE") || msg.includes("idx_cita_unq")) {
+        return json({ ok: false, error: "Ya existe una cita para ese paciente, dirección, fecha y hora" }, 409);
+      }
+      return json({ ok: false, error: "Error al crear cita" }, 500);
+    }
+  }
+
+  // ---------- PUT /api/cita/:id (editar campos no-estado) ----------
+  if (request.method === "PUT") {
+    if (!id) return json({ ok: false, error: "Falta /:id en la ruta" }, 400);
+
+    let body;
+    try { body = await request.json(); } catch { return json({ ok: false, error: "JSON inválido" }, 400); }
+
+    // Cargar actual
+    const current = await env.DB.prepare(
+      `SELECT id, paciente_id, direccion_id, seguro_id, fecha, hora, sintomas, asistencia, movimiento, estado
+       FROM cita WHERE id = ?`
+    ).bind(id).first();
+    if (!current) return json({ ok: false, error: "Cita no encontrada" }, 404);
+
+    // Merge
+    const paciente_id = body.paciente_id ? Number(body.paciente_id) : current.paciente_id;
+    const direccion_id = body.direccion_id ? Number(body.direccion_id) : current.direccion_id;
+    const seguro_id = body.seguro_id !== undefined ? Number(body.seguro_id) : current.seguro_id;
+    const fecha = body.fecha !== undefined ? (body.fecha ?? "").toString().trim() : current.fecha;
+    const hora = body.hora !== undefined ? (body.hora ?? "").toString().trim() : current.hora;
+    const sintomas = body.sintomas !== undefined ? (body.sintomas ?? "").toString().trim() : current.sintomas;
+    const asistencia = body.asistencia !== undefined ? Number(body.asistencia) : current.asistencia;
+
+    // Validaciones básicas
+    if (!(paciente_id > 0) || !(direccion_id > 0) || !fecha || !hora) {
+      return json({ ok: false, error: "paciente_id, direccion_id, fecha, hora no pueden quedar vacíos" }, 400);
+    }
+
+    // Verificar FKs si cambian
+    if (paciente_id !== current.paciente_id && !(await exists("paciente", paciente_id))) {
+      return json({ ok: false, error: "Paciente no existe" }, 404);
+    }
+    if (direccion_id !== current.direccion_id && !(await exists("direccion", direccion_id))) {
+      return json({ ok: false, error: "Dirección no existe" }, 404);
+    }
+
+    try {
+      const res = await env.DB
+        .prepare(
+          `UPDATE cita
+           SET paciente_id=?, direccion_id=?, seguro_id=?, fecha=?, hora=?, sintomas=?, asistencia=?
+           WHERE id = ?`
+        )
+        .bind(paciente_id, direccion_id, seguro_id, fecha, hora, sintomas || null, asistencia ?? 0, id)
+        .run();
+
+      if ((res.meta?.changes ?? 0) === 0) return json({ ok: false, error: "Sin cambios" }, 200);
+      return json({ ok: true });
+    } catch (e) {
+      const msg = String(e?.message ?? e);
+      if (msg.includes("UNIQUE") || msg.includes("idx_cita_unq")) {
+        return json({ ok: false, error: "Conflicto: combinación paciente/dirección/fecha/hora ya existe" }, 409);
+      }
+      return json({ ok: false, error: "Error al actualizar cita" }, 500);
+    }
+  }
+
+  // ---------- DELETE /api/cita/:id ----------
+  if (request.method === "DELETE") {
+    if (!id) return json({ ok: false, error: "Falta /:id en la ruta" }, 400);
+
+    const res = await env.DB.prepare("DELETE FROM cita WHERE id = ?").bind(id).run();
+    if ((res.meta?.changes ?? 0) === 0) return json({ ok: false, error: "Cita no encontrada" }, 404);
+    return json({ ok: true });
+  }
+
+  return new Response("Method Not Allowed", { status: 405 });
 }
