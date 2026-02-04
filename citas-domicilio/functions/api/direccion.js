@@ -23,49 +23,56 @@ export async function onRequest(context) {
     return !!row?.ok;
   }
 
-  // ---------- GET ----------
-  if (request.method === "GET") {
-    // GET /api/direccion/:id
-    if (id) {
-      const row = await env.DB
-        .prepare(
-          "SELECT id, paciente_id, direccion, ciudad, zona, referencia, sector FROM direccion WHERE id = ?"
-        )
-        .bind(id)
-        .first();
+// ---------- GET ----------
+if (request.method === "GET") {
+  // Acepta:
+  //   - GET /api/direccion/:id
+  //   - GET /api/direccion?id=123
+  //   - GET /api/direccion?paciente_id=...
+  const qsId = Number((url.searchParams.get("id") ?? "").trim());
+  const targetId = id || (Number.isFinite(qsId) && qsId > 0 ? qsId : null);
 
-      if (!row) return json({ ok: false, error: "Dirección no encontrada" }, 404);
-      return json({ ok: true, data: row });
-    }
+  // GET por ID
+  if (targetId) {
+    const row = await env.DB
+      .prepare(
+        `SELECT id, paciente_id, direccion, ciudad, zona, referencia, sector
+         FROM direccion WHERE id = ?`
+      )
+      .bind(targetId)
+      .first();
 
-    // GET /api/direccion?paciente_id=...
-    const pacienteId = Number(url.searchParams.get("paciente_id") ?? 0);
-    if (pacienteId > 0) {
-      const { results } = await env.DB
-        .prepare(
-          `SELECT id, paciente_id, direccion, ciudad, zona, referencia, sector
-           FROM direccion
-           WHERE paciente_id = ?
-           ORDER BY id DESC`
-        )
-        .bind(pacienteId)
-        .all();
+    if (!row) return json({ ok: false, error: "Dirección no encontrada" }, 404);
+    return json({ ok: true, data: row });
+  }
 
-      return json({ ok: true, data: results ?? [] });
-    }
-
-    // GET /api/direccion (lista)
+  // GET /api/direccion?paciente_id=...
+  const pacienteId = Number((url.searchParams.get("paciente_id") ?? "").trim());
+  if (Number.isFinite(pacienteId) && pacienteId > 0) {
     const { results } = await env.DB
       .prepare(
         `SELECT id, paciente_id, direccion, ciudad, zona, referencia, sector
          FROM direccion
+         WHERE paciente_id = ?
          ORDER BY id DESC`
       )
+      .bind(pacienteId)
       .all();
 
     return json({ ok: true, data: results ?? [] });
   }
 
+  // GET /api/direccion (lista completa)
+  const { results } = await env.DB
+    .prepare(
+      `SELECT id, paciente_id, direccion, ciudad, zona, referencia, sector
+       FROM direccion
+       ORDER BY id DESC`
+    )
+    .all();
+
+  return json({ ok: true, data: results ?? [] });
+}
   // ---------- POST ----------
   if (request.method === "POST") {
     let body;
@@ -180,3 +187,4 @@ export async function onRequest(context) {
 
   return new Response("Method Not Allowed", { status: 405 });
 }
+
