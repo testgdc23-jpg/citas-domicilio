@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Pacientes</title>
-  <link rel="stylesheet" href="/app/assets/css/styles.css" />
+  <link rel="stylesheet" href="/app/assets/css/styles.css">
 </head>
 <body class="app">
   <div class="container">
@@ -44,7 +44,8 @@
 
     async function cargar() {
       try {
-        const { data } = await api('/api/paciente');
+        const { ok, data } = await api('/api/paciente');
+        if (!ok) throw new Error('Error cargando pacientes');
         tbody.innerHTML = data.map(p => `
           <tr>
             <td>${p.id}</td>
@@ -96,6 +97,7 @@
     }
 
     async function editar(id) {
+      // Tomamos los datos visibles en la fila y los editamos con prompts (rápido para test)
       const fila = [...tbody.children].find(tr => tr.firstElementChild.textContent == id);
       const ci = prompt('CI:', fila.children[1].textContent);
       if (ci === null) return;
