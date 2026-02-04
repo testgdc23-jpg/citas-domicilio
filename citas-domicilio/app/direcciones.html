@@ -183,22 +183,34 @@
     }
 
     // ---- Editar ----
-    window.editarDir = async function(id) {
-      try {
-        const { ok, data } = await api(`/api/direccion/${id}`);
-        if (!ok || !data) throw new Error('No se encontró la dirección');
-        editId.value = data.id;
-        direccion.value = data.direccion ?? '';
-        ciudad.value = data.ciudad ?? '';
-        sector.value = data.sector ?? '';
-        referencia.value = data.referencia ?? '';
-        zona.value = (data.zona ?? '').toLowerCase();
-        btnCancelar.style.display = 'inline-block';
-        direccion.focus();
-      } catch (e) {
-        setAlert(msg, e.message, true);
+  window.editarDir = async function(id) {
+    try {
+      // Normaliza el ID para evitar espacios/NaN
+      const dirId = Number(String(id).trim());
+      if (!Number.isFinite(dirId) || dirId <= 0) {
+        throw new Error('ID de dirección inválido');
       }
+
+      // Evita 'trailing slash': usamos exactamente /api/direccion/:id
+      const { ok, data } = await api(`/api/direccion/${dirId}`);
+      if (!ok || !data) throw new Error('No se encontró la dirección');
+
+      // Rellena formulario
+      document.querySelector('#editId').value = data.id;
+      document.querySelector('#direccion').value = data.direccion ?? '';
+      document.querySelector('#ciudad').value = data.ciudad ?? '';
+      document.querySelector('#sector').value = data.sector ?? '';
+      document.querySelector('#referencia').value = data.referencia ?? '';
+      document.querySelector('#zona').value = (data.zona ?? '').toLowerCase();
+
+      document.querySelector('#btnCancelar').style.display = 'inline-block';
+      document.querySelector('#direccion').focus();
+    } catch (e) {
+      setAlert(document.querySelector('#msg'), e.message, true);
+      // Para diagnóstico rápido:
+      console.error('editarDir error:', e);
     }
+  }
 
     // ---- Borrar ----
     window.borrarDir = async function(id) {
