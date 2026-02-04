@@ -2,10 +2,115 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta http-equiv="refresh" content="0; url=/app/index.html" />
-  <title>Redirigiendo…</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pacientes</title>
+  <link rel="stylesheet" href="/app/assets/css/styles.css" />
 </head>
-<body>
-  Redirigiendo a la aplicación…
+<body class="app">
+  <div class="container">
+    <h1>Pacientes</h1>
+    <a class="pill" href="/">← Volver</a>
+
+    <div id="msg" class="alert"></div>
+
+    <div class="form-row">
+      <label>CI
+        <input id="ci" maxlength="10" placeholder="Ej: 1789012345">
+      </label>
+      <label>Nombre
+        <input id="nombre" placeholder="Nombre">
+      </label>
+      <label>Apellido
+        <input id="apellido" placeholder="Apellido">
+      </label>
+      <label>Teléfono
+        <input id="telefono" placeholder="+593 99 999 9999">
+      </label>
+      <button id="btnCrear">Crear paciente</button>
+    </div>
+
+    <table class="table" id="tbl">
+      <thead><tr><th>ID</th><th>CI</th><th>Nombre</th><th>Teléfono</th><th>Acciones</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script src="/app/assets/js/common.js"></script>
+  <script>
+    const tbody = $('#tbl tbody');
+    const msg = $('#msg');
+
+    async function cargar() {
+      try {
+        const { data } = await api('/api/paciente');
+        tbody.innerHTML = data.map(p => `
+          <tr>
+            <td>${p.id}</td>
+            <td>${p.ci}</td>
+            <td>${p.nombre} ${p.apellido}</td>
+            <td>${p.telefono ?? ''}</td>
+            <td class="actions">
+              <button onclick="editar(${p.id})">Editar</button>
+              <button class="secondary" onclick="borrar(${p.id})">Borrar</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        setAlert(msg, e.message, true);
+      }
+    }
+
+    async function crear() {
+      const body = {
+        ci: $('#ci').value.trim(),
+        nombre: $('#nombre').value.trim(),
+        apellido: $('#apellido').value.trim(),
+        telefono: $('#telefono').value.trim(),
+      };
+      if (!body.ci || !body.nombre || !body.apellido) {
+        return setAlert(msg, 'CI, nombre y apellido son obligatorios', true);
+      }
+      try {
+        const r = await api('/api/paciente', { method: 'POST', body: JSON.stringify(body) });
+        setAlert(msg, `Paciente creado (id ${r.id})`);
+        $('#ci').value = $('#nombre').value = $('#apellido').value = $('#telefono').value = '';
+        await cargar();
+      } catch (e) {
+        setAlert(msg, e.message, true);
+      }
+    }
+
+    async function borrar(id) {
+      if (!confirm('¿Eliminar paciente?')) return;
+      try {
+        await api(`/api/paciente/${id}`, { method: 'DELETE' });
+        await cargar();
+      } catch (e) {
+        setAlert(msg, e.message, true);
+      }
+    }
+
+    async function editar(id) {
+      const fila = [...tbody.children].find(tr => tr.firstElementChild.textContent == id);
+      const ci = prompt('CI:', fila.children[1].textContent);
+      if (ci === null) return;
+      const nombreCompleto = fila.children[2].textContent.split(' ');
+      const nombre = prompt('Nombre:', nombreCompleto[0]) ?? '';
+      const apellido = prompt('Apellido:', nombreCompleto.slice(1).join(' ')) ?? '';
+      const telefono = prompt('Teléfono:', fila.children[3].textContent) ?? '';
+      try {
+        await api(`/api/paciente/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ ci, nombre, apellido, telefono })
+        });
+        await cargar();
+      } catch (e) {
+        setAlert(msg, e.message, true);
+      }
+    }
+
+    $('#btnCrear').addEventListener('click', crear);
+    addEventListener('DOMContentLoaded', cargar);
+  </script>
 </body>
 </html>
