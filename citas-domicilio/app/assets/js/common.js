@@ -1,12 +1,25 @@
 // /app/assets/js/common.js
-const BASE = ''; // en producción, vacío. Si pruebas local, pon 'http://127.0.0.1:8788'
+const BASE = '';
 
 async function api(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
     ...options
   });
-  const data = await res.json().catch(() => ({}));
+
+  // Intenta leer texto y parsear JSON; si parece HTML, alerta mejor
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    // Si empieza con <!doctype o <html, es HTML de error
+    if (/^\s*<!doctype|^\s*<html/i.test(text)) {
+      throw new Error(`La URL ${path} devolvió HTML (posible 404/500 en Functions).`);
+    }
+    throw new Error(`Respuesta no JSON desde ${path}: ${text.slice(0, 120)}...`);
+  }
+
   if (!res.ok || data.ok === false) {
     throw new Error(data.error || `Error HTTP ${res.status}`);
   }
