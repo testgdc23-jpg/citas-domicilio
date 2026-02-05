@@ -8,7 +8,6 @@
   <style>
     .row{display:flex;gap:10px;flex-wrap:wrap}.row>*{min-width:220px;flex:1}
     fieldset{border:1px solid #223257;border-radius:10px;padding:12px;margin-bottom:14px}
-    .muted{opacity:.8}
   </style>
 </head>
 <body class="app">
@@ -18,27 +17,12 @@
   <div id="msg" class="alert"></div>
 
   <fieldset>
-    <legend>Búsqueda</legend>
+    <legend>Buscar por ID de Cita</legend>
     <div class="row">
-      <label>CI Paciente
-        <input id="b-ci" placeholder="10 dígitos"/>
-      </label>
-      <button id="btnBuscarCI" class="secondary" type="button">Buscar</button>
-
       <label>ID Cita
-        <input id="b-cita" inputmode="numeric" placeholder="ID"/>
+        <input id="citaId" inputmode="numeric" placeholder="ID"/>
       </label>
-      <button id="btnBuscarCita" class="secondary" type="button">Ir</button>
-    </div>
-  </fieldset>
-
-  <fieldset>
-    <legend>Selección</legend>
-    <div class="row">
-      <label>Citas del Paciente
-        <select id="selCita"><option value="">— Selecciona —</option></select>
-      </label>
-      <button id="btnVerPago" class="secondary" type="button" disabled>Ver Pago</button>
+      <button id="btnCargar" class="secondary" type="button">Cargar</button>
     </div>
   </fieldset>
 
@@ -65,75 +49,36 @@
     </div>
     <input type="hidden" id="pagoId" value=""/>
   </fieldset>
-
-  <h3 style="margin-top:18px;">Pagos recientes</h3>
-  <table class="table" id="tblPagos">
-    <thead>
-      <tr>
-        <th>ID</th><th>Cita</th><th>Copago</th><th>Medicina</th><th>Total</th><th>Transferido</th><th>Forma</th><th>Fecha</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
 </div>
 
 <script>
 async function api(u,o={}){ const r=await fetch(u,{headers:{'Content-Type':'application/json'},...o}); const ct=r.headers.get('Content-Type')||''; const b=ct.includes('json')?await r.json():await r.text(); if(!r.ok) throw Object.assign(new Error('HTTP '+r.status),{status:r.status,body:b}); return b;}
 function setMsg(t,err){ const el=document.getElementById('msg'); el.textContent=t||''; el.style.display=t?'block':'none'; el.classList.toggle('error',!!err); }
-const selCita=document.getElementById('selCita'); const btnVerPago=document.getElementById('btnVerPago');
-const copagoEl=bI('copago'), medicinaEl=bI('medicina'), totalEl=bI('total'), transfEl=bI('transferido'), formaEl=bI('forma'), fechaEl=bI('fechaPago'), obsEl=bI('obs'), pagoIdEl=bI('pagoId'), tbody=document.querySelector('#tblPagos tbody');
+const copagoEl=bI('copago'), medicinaEl=bI('medicina'), totalEl=bI('total'), transfEl=bI('transferido'), formaEl=bI('forma'), fechaEl=bI('fechaPago'), obsEl=bI('obs'), pagoIdEl=bI('pagoId');
 function bI(id){ return document.getElementById(id); }
 function setTotal(){ totalEl.value=(Number(copagoEl.value||0)+Number(medicinaEl.value||0)).toFixed(2); }
 copagoEl.addEventListener('input',setTotal); medicinaEl.addEventListener('input',setTotal);
 
-async function cargarCitasPorPacienteId(pid){
-  const r=await api('/api/cita?paciente_id='+pid);
-  const L=r?.data??[];
-  selCita.innerHTML = L.length
-    ? '<option value="">— Selecciona —</option>' + L.map(c=>`<option value="${c.id}">#${c.id} · ${c.fecha}${c.hora?' '+c.hora:''} · ${c.estado}</option>`).join('')
-    : '<option value="">(Sin citas)</option>';
-  selCita.disabled = L.length===0; btnVerPago.disabled = selCita.disabled;
-}
-
-document.getElementById('btnBuscarCI').onclick = async ()=>{
+document.getElementById('btnCargar').onclick = async ()=>{
   try{
-    const ci=(document.getElementById('b-ci').value||'').trim(); if(!ci) return setMsg('Ingresa CI',true);
-    const r=await api('/api/paciente?ci='+encodeURIComponent(ci));
-    if(!r?.data?.id) return setMsg('Paciente no encontrado',true);
-    await cargarCitasPorPacienteId(r.data.id);
-    setMsg('Citas del paciente cargadas');
-  }catch(e){ setMsg(e?.body?.error||'Error al buscar por CI',true); }
-};
-
-document.getElementById('btnBuscarCita').onclick = async ()=>{
-  try{
-    const id=Number((document.getElementById('b-cita').value||'').trim()); if(!id) return setMsg('Ingresa ID de cita',true);
-    selCita.innerHTML = `<option value="${id}">#${id}</option>`;
-    selCita.disabled = false; btnVerPago.disabled = false; selCita.value=String(id);
-    setMsg('Cita seleccionada');
-  }catch(e){ setMsg('Error al seleccionar cita',true); }
-};
-
-btnVerPago.onclick = async ()=>{
-  try{
-    const id=Number(selCita.value); if(!id) return setMsg('Selecciona cita',true);
-    const r=await api('/api/pago?cita_id='+id);
+    const id = Number((document.getElementById('citaId').value||'').trim()); if(!id) return setMsg('Ingresa ID de cita',true);
+    const r = await api('/api/pago?cita_id='+id);
     const p = (r?.data||[])[0];
     if(!p){
-      pagoIdEl.value=''; copagoEl.value='0'; medicinaEl.value='0'; transfEl.value='0'; formaEl.value=''; fechaEl.value=''; obsEl.value=''; setTotal(); btnBorrar.style.display='none';
+      pagoIdEl.value=''; copagoEl.value='0'; medicinaEl.value='0'; transfEl.value='0'; formaEl.value=''; fechaEl.value=''; obsEl.value=''; setTotal(); document.getElementById('btnBorrar').style.display='none';
       return setMsg('Sin pago. Puedes crearlo.');
     }
     pagoIdEl.value=p.id; copagoEl.value=Number(p.copago||0); medicinaEl.value=Number(p.medicina||0); transfEl.value=Number(p.valor_transferido||0);
-    formaEl.value=p.forma_pago||''; fechaEl.value=(p.fecha_pago||'').substring(0,10); obsEl.value=p.observaciones||''; setTotal(); btnBorrar.style.display='inline-block'; setMsg(`Pago #${p.id} cargado`);
+    formaEl.value=p.forma_pago||''; fechaEl.value=(p.fecha_pago||'').substring(0,10); obsEl.value=p.observaciones||''; setTotal(); document.getElementById('btnBorrar').style.display='inline-block'; setMsg(`Pago #${p.id} cargado`);
   }catch(e){ setMsg(e?.body?.error||'Error al consultar pago',true); }
 };
 
 document.getElementById('btnGuardar').onclick = async ()=>{
   try{
-    const id=Number(selCita.value); if(!id) return setMsg('Selecciona cita',true);
+    const id = Number((document.getElementById('citaId').value||'').trim()); if(!id) return setMsg('Ingresa ID de cita',true);
     const body={ cita_id:id, copago:Number(copagoEl.value||0), medicina:Number(medicinaEl.value||0), valor_transferido:Number(transfEl.value||0), forma_pago:(formaEl.value||'').trim(), fecha_pago:(fechaEl.value||'').trim()||null, observaciones:(obsEl.value||'').trim()||null };
     await api('/api/pago',{method:'POST',body:JSON.stringify(body)});
-    await btnVerPago.onclick(); await cargarPagosRecientes(); setMsg('Pago guardado');
+    document.getElementById('btnCargar').onclick(); setMsg('Pago guardado');
   }catch(e){ setMsg(e?.body?.error||'Error al guardar pago',true); }
 };
 
@@ -141,25 +86,9 @@ document.getElementById('btnBorrar').onclick = async ()=>{
   try{
     const id=Number(pagoIdEl.value); if(!id) return setMsg('No hay pago para borrar',true);
     await api('/api/pago/'+id,{method:'DELETE'});
-    btnVerPago.onclick(); await cargarPagosRecientes(); setMsg('Pago eliminado');
+    document.getElementById('btnCargar').onclick(); setMsg('Pago eliminado');
   }catch(e){ setMsg(e?.body?.error||'Error al borrar pago',true); }
 };
-
-async function cargarPagosRecientes(){
-  try{
-    const r=await api('/api/pago'); const L=r?.data??[];
-    tbody.innerHTML = L.slice(0,20).map(p=>`
-      <tr>
-        <td>${p.id}</td><td>#${p.cita_id}</td>
-        <td>${Number(p.copago||0).toFixed(2)}</td>
-        <td>${Number(p.medicina||0).toFixed(2)}</td>
-        <td>${Number(p.total_recibido||0).toFixed(2)}</td>
-        <td>${Number(p.valor_transferido||0).toFixed(2)}</td>
-        <td>${p.forma_pago||''}</td><td>${p.fecha_pago||''}</td>
-      </tr>`).join('');
-  }catch{}
-}
-document.addEventListener('DOMContentLoaded', cargarPagosRecientes);
 </script>
 </body>
 </html>
