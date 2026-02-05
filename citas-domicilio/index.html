@@ -1,5 +1,71 @@
-<!-- /index.html: redirigir a /app/index.html -->
 <!doctype html>
-<meta charset="utf-8">
-<meta http-equiv="refresh" content="0; url=/app/index.html">
-<title>Redirigiendo…</title>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Centro Operativo — Citas a Domicilio</title>
+  <link rel="stylesheet" href="/app/assets/css/styles.css"/>
+  <style>
+    .grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}
+    .card {border:1px solid #223257;border-radius:10px;padding:14px;background:#0b1533}
+    .card h3{margin:0 0 6px}
+    .muted{opacity:.8}
+    .card a.pill{display:inline-block;margin:4px 6px 0 0}
+  </style>
+</head>
+<body class="app">
+  <div class="container">
+    <h1>Centro Operativo — Citas a Domicilio</h1>
+    <p class="muted">Navega por el flujo real del servicio:</p>
+
+    <div class="grid">
+      <div class="card">
+        <h3>1) Call Center</h3>
+        <p>Registrar cliente, dirección y cita con Seguro.</p>
+        <p>
+          <a class="pill" href="/app/flujo.html">▶ Flujo guiado</a>
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>2) Coordinación</h3>
+        <p>Generar y enviar la Orden de Atención.</p>
+        <p class="muted">Abre la orden desde el Flujo (después de crear la cita).</p>
+      </div>
+
+      <div class="card">
+        <h3>3) Médico</h3>
+        <p>Completar diagnóstico de la cita.</p>
+        <p>
+          <a class="pill" href="/app/diagnostico.html">🩺 Diagnóstico</a>
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>4) Call Center — Pagos</h3>
+        <p>Registrar/validar pagos.</p>
+        <p>
+          <a class="pill" href="/app/pagos.html">💳 Pagos</a>
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>5) Facturación</h3>
+        <p>Descargar CSV de atenciones y facturar a Seguros.</p>
+        <p>
+          <a class="pill" href="/app/reportes.html">📥 Reportes CSV</a>
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Operación</h3>
+        <p>Salud y estado.</p>
+        <p>
+          <a class="pill" href="/app/estado.html">📊 Estado</a>
+          <a class="pill" href="/app/health.html">🩺 Health</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
