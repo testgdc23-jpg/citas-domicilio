@@ -13,7 +13,7 @@
 <body class="app">
 <div class="container">
   <h1>Diagnóstico — Médico</h1>
-  <p><a class="pill" href="/">← Inicio</a></p>
+  <p><a class="pill" href="/app/index.html">← Menú</a></p>
   <div id="msg" class="alert"></div>
 
   <fieldset>
@@ -42,7 +42,7 @@ function setMsg(t,err){ const el=document.getElementById('msg'); el.textContent=
 
 document.getElementById('btnGuardar').onclick = async ()=>{
   try{
-    const body={ cita_id:Number(document.getElementById('cita').value||0), diagnostico:document.getElementById('diag').value||'', medicacion_administrada:document.getElementById('medadm').value||'', receta:document.getElementById('receta').value||'', tratamiento:document.getElementById('trat').value||'', observaciones:document.getElementById('obs').value||'' };
+    const body={ cita_id:Number((document.getElementById('cita').value||'').trim()), diagnostico:(document.getElementById('diag').value||'').trim(), medicacion_administrada:(document.getElementById('medadm').value||'').trim(), receta:(document.getElementById('receta').value||'').trim(), tratamiento:(document.getElementById('trat').value||'').trim(), observaciones:(document.getElementById('obs').value||'').trim() };
     if(!body.cita_id) return setMsg('Ingresa ID de cita',true);
     await api('/api/diagnostico',{method:'POST',body:JSON.stringify(body)});
     setMsg('Diagnóstico guardado');
