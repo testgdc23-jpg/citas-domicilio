@@ -20,7 +20,6 @@ export const onRequestPost = async ({ env, request }) => {
     return json({ ok:false, error:"Campos requeridos: paciente_id, seguro_id, fecha" }, 400);
   }
 
-  // seguro.nombre (minúsculas en DB) → alias Nombre
   const seg = await env.DB
     .prepare(`SELECT id, nombre AS Nombre FROM seguro WHERE id=?`)
     .bind(seguro_id)
