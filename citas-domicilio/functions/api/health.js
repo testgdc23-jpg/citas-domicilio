@@ -1,4 +1,6 @@
-export async function onRequest({ env }) {
-  const row = await env.DB.prepare('SELECT 1 AS ok').first();
-  return Response.json({ ok: row?.ok === 1 });
-}
+// functions/api/health.js
+export const onRequestGet = async () => {
+  return new Response(JSON.stringify({ ok: true, time: new Date().toISOString() }), {
+    headers: { "Content-Type": "application/json" }
+  });
+};
