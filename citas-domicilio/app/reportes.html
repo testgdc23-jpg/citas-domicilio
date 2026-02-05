@@ -13,7 +13,7 @@
 <body class="app">
 <div class="container">
   <h1>Reportes CSV — Facturación</h1>
-  <p><a class="pill" href="/">← Inicio</a></p>
+  <p><a class="pill" href="/app/index.html">← Menú</a></p>
 
   <fieldset>
     <legend>Parámetros</legend>
@@ -31,9 +31,11 @@
 </div>
 
 <script>
-async function api(u){ const r=await fetch(u); return r.json(); }
+async function api(u){ const r=await fetch(u); try{ return await r.json(); }catch{ return {ok:false,data:[]}; } }
 document.addEventListener('DOMContentLoaded', async ()=>{
-  try{ const p=await api('/api/seguro'); const L=p?.data??[]; const s=document.getElementById('seguro'); s.innerHTML='<option value="0">Todos</option>'+ L.map(x=>`<option value="${x.id}">${x.Nombre}</option>`).join(''); }catch{}
+  const p=await api('/api/seguro'); const L=p?.data??[];
+  const s=document.getElementById('seguro');
+  s.innerHTML='<option value="0">Todos</option>'+ L.map(x=>`<option value="${x.id}">${x.Nombre}</option>`).join('');
 });
 document.getElementById('btnCsv').onclick = ()=>{
   const d=document.getElementById('desde').value||'', h=document.getElementById('hasta').value||'', s=document.getElementById('seguro').value||'0';
