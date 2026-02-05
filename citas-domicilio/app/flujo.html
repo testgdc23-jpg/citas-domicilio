@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Flujo Operativo — Call Center</title>
+  <title>Flujo — Call Center (botón por tabla)</title>
   <link rel="stylesheet" href="/app/assets/css/styles.css"/>
   <style>
     fieldset{border:1px solid #223257;border-radius:10px;padding:12px;margin-bottom:14px}
@@ -12,31 +12,29 @@
     .row>*{min-width:220px;flex:1}
     .muted{opacity:.85}
     .hide{display:none}
-    .btns{display:flex;gap:10px;flex-wrap:wrap}
+    textarea{width:100%}
   </style>
 </head>
 <body class="app">
 <div class="container">
-  <h1>Flujo Operativo — Call Center</h1>
+  <h1>Flujo — Call Center</h1>
   <p><a class="pill" href="/app/index.html">← Menú</a></p>
-  <div id="msg" class="alert"></div>
+  <div id="msg" class="alert" style="display:none"></div>
 
   <!-- Buscar por CI -->
   <fieldset>
-    <legend>1) Buscar Paciente</legend>
+    <legend>Buscar Paciente por CI</legend>
     <div class="row">
-      <label>CI
-        <input id="ci" placeholder="10 dígitos"/>
-      </label>
+      <label>CI <input id="ci" placeholder="10 dígitos"/></label>
       <button id="btnBuscar" class="secondary" type="button">Buscar</button>
-      <button id="btnNuevo" type="button">Crear paciente</button>
+      <button id="btnLimpiar" type="button">Limpiar</button>
     </div>
-    <p class="muted">Si existe: se completa Paciente y Dirección (editable) para agendar la Cita. Si no: usa “Crear paciente”.</p>
+    <p class="muted">Si el paciente existe, se cargan los datos y su <b>última dirección</b>; puedes editarlos.</p>
   </fieldset>
 
-  <!-- Paciente -->
-  <fieldset id="fsPaciente" class="hide">
-    <legend>2) Paciente</legend>
+  <!-- PACIENTE -->
+  <fieldset>
+    <legend>Paciente</legend>
     <div class="row">
       <label>Nombres <input id="p-nombre"/></label>
       <label>Apellidos <input id="p-apellido"/></label>
@@ -45,11 +43,14 @@
         <select id="p-escuela"><option value="">— Ninguna —</option></select>
       </label>
     </div>
+    <div class="row">
+      <button id="btnGuardarPaciente" type="button">Guardar/Actualizar Paciente</button>
+    </div>
   </fieldset>
 
-  <!-- Dirección (si existe, se carga y se puede editar) -->
-  <fieldset id="fsDireccion" class="hide">
-    <legend>3) Dirección</legend>
+  <!-- DIRECCIÓN -->
+  <fieldset>
+    <legend>Dirección (última, editable)</legend>
     <div class="row">
       <label>Ciudad <input id="d-ciudad"/></label>
       <label>Dirección <input id="d-direccion" placeholder="Calle, #, etc."/></label>
@@ -64,14 +65,14 @@
       <label>Referencia <input id="d-referencia"/></label>
       <label>Sector <input id="d-sector"/></label>
     </div>
-    <div class="btns">
-      <button id="btnActualizarDir" type="button">Guardar/Actualizar Dirección</button>
+    <div class="row">
+      <button id="btnGuardarDireccion" type="button">Guardar/Actualizar Dirección</button>
     </div>
   </fieldset>
 
-  <!-- Cita -->
-  <fieldset id="fsCita" class="hide">
-    <legend>4) Cita</legend>
+  <!-- CITA -->
+  <fieldset>
+    <legend>Cita</legend>
     <div class="row">
       <label>Seguro
         <select id="c-seguro"><option value="">— Selecciona —</option></select>
@@ -85,166 +86,17 @@
       </label>
     </div>
     <div id="mawdyBox" class="row hide">
-      <label>Asistencia
-        <input id="c-asistencia" inputmode="numeric" maxlength="9" placeholder="9 dígitos"/>
-      </label>
-      <label>Movimiento
-        <input id="c-movimiento" inputmode="numeric" maxlength="6" placeholder="6 dígitos"/>
-      </label>
+      <label>Asistencia (9 díg) <input id="c-asistencia" inputmode="numeric" maxlength="9"/></label>
+      <label>Movimiento (6 díg) <input id="c-movimiento" inputmode="numeric" maxlength="6"/></label>
     </div>
-    <div class="btns">
+    <div class="row">
       <button id="btnGuardarCita" type="button">Guardar Cita</button>
       <button id="btnImprimir" class="secondary" type="button" disabled>Ver/Imprimir Orden</button>
     </div>
+    <input type="hidden" id="pacienteId" value=""/>
     <input type="hidden" id="citaId" value=""/>
   </fieldset>
 </div>
 
 <script>
-async function api(u,o={}){ const r=await fetch(u,{headers:{'Content-Type':'application/json'},...o}); const ct=r.headers.get('Content-Type')||''; const b=ct.includes('json')?await r.json():await r.text(); if(!r.ok) throw Object.assign(new Error('HTTP '+r.status),{status:r.status,body:b}); return b;}
-function setMsg(t,err){ const el=document.getElementById('msg'); el.textContent=t||''; el.style.display=t?'block':'none'; el.classList.toggle('error',!!err); }
-function val(id){ return (document.getElementById(id).value||'').trim(); }
-function show(id,flag){ document.getElementById(id).classList.toggle('hide', !flag); }
-let currentPacienteId=null; let pacienteExiste=false;
-
-function isMAWDY(){
-  const sel=document.getElementById('c-seguro'); const opt=sel.options[sel.selectedIndex];
-  return opt && opt.textContent.trim().toUpperCase()==='MAWDY';
-}
-document.getElementById('c-seguro').addEventListener('change',()=>{
-  show('mawdyBox', isMAWDY());
-});
-
-async function loadEscuelas(){
-  try{
-    const p=await api('/api/escuela'); const L=p?.data??[];
-    document.getElementById('p-escuela').innerHTML = '<option value="">— Ninguna —</option>' + L.map(e=>`<option value="${e.id}">${e.Direccion}</option>`).join('');
-  }catch{}
-}
-async function loadSeguros(){
-  const p=await api('/api/seguro'); const L=p?.data??[];
-  const orden=['KLS','MAWDY','KLS LABORATORIO','PLAN VITAL','PROASSISLIFE'];
-  const S=[...L].sort((a,b)=>orden.indexOf(a.Nombre)-orden.indexOf(b.Nombre));
-  document.getElementById('c-seguro').innerHTML = '<option value="">— Selecciona —</option>' + S.map(s=>`<option value="${s.id}">${s.Nombre}</option>`).join('');
-}
-document.addEventListener('DOMContentLoaded', async()=>{ await loadEscuelas(); await loadSeguros(); });
-
-document.getElementById('btnBuscar').onclick = async ()=>{
-  try{
-    const ci=val('ci'); if(!ci) return setMsg('Ingresa CI',true);
-    const r=await api('/api/paciente?ci='+encodeURIComponent(ci));
-    if(!r?.data){
-      setMsg('No existe paciente. Puedes crearlo con “Crear paciente”.');
-      currentPacienteId=null; pacienteExiste=false;
-      show('fsPaciente', false); show('fsDireccion', false); show('fsCita', false);
-      return;
-    }
-    // Rellenar paciente
-    pacienteExiste=true; currentPacienteId=r.data.id;
-    document.getElementById('p-nombre').value=r.data.nombre||'';
-    document.getElementById('p-apellido').value=r.data.apellido||'';
-    document.getElementById('p-telefono').value=r.data.telefono||'';
-    if (r.data.escuela_id) document.getElementById('p-escuela').value=String(r.data.escuela_id);
-    show('fsPaciente', true);
-
-    // Cargar última dirección y permitir editar
-    const d=await api('/api/direccion?paciente_id='+currentPacienteId);
-    if (d?.data) {
-      document.getElementById('d-ciudad').value=d.data.Ciudad||'';
-      document.getElementById('d-direccion').value=d.data.Direccion||'';
-      document.getElementById('d-zona').value=d.data.Zona||'';
-      document.getElementById('d-referencia').value=d.data.Referencia||'';
-      document.getElementById('d-sector').value=d.data.Sector||'';
-    } else {
-      document.getElementById('d-ciudad').value='';
-      document.getElementById('d-direccion').value='';
-      document.getElementById('d-zona').value='';
-      document.getElementById('d-referencia').value='';
-      document.getElementById('d-sector').value='';
-    }
-    show('fsDireccion', true);
-    show('fsCita', true);
-    setMsg('Paciente encontrado. Puedes editar dirección y agendar la cita.');
-  }catch(e){ setMsg(e?.body?.error||'Error al buscar',true); }
-};
-
-document.getElementById('btnNuevo').onclick = ()=>{
-  // Mostrar formularios para crear todo
-  currentPacienteId=null; pacienteExiste=false;
-  show('fsPaciente', true);
-  show('fsDireccion', true);
-  show('fsCita', true);
-  setMsg('Completa datos de Paciente, Dirección y Cita. Luego guarda.');
-};
-
-document.getElementById('btnActualizarDir').onclick = async ()=>{
-  try{
-    if (!currentPacienteId) return setMsg('Primero resuelve el paciente',true);
-    const body={
-      paciente_id: currentPacienteId,
-      ciudad: val('d-ciudad'),
-      direccion: val('d-direccion'),
-      zona: val('d-zona'),
-      referencia: val('d-referencia'),
-      sector: val('d-sector')
-    };
-    await api('/api/direccion',{ method:'PUT', body: JSON.stringify(body) });
-    setMsg('Dirección guardada/actualizada');
-  }catch(e){ setMsg(e?.body?.error||'Error al guardar dirección',true); }
-};
-
-document.getElementById('btnGuardarCita').onclick = async ()=>{
-  try{
-    // Si no existe el paciente, primero créalo y su dirección; luego la cita
-    if (!pacienteExiste || !currentPacienteId) {
-      const ci=val('ci'), nombre=val('p-nombre'), apellido=val('p-apellido'), telefono=val('p-telefono');
-      const escuela_id = document.getElementById('p-escuela').value ? Number(document.getElementById('p-escuela').value) : null;
-      if(!ci||!nombre||!apellido) return setMsg('CI, Nombres y Apellidos son obligatorios',true);
-      await api('/api/paciente',{ method:'POST', body: JSON.stringify({ ci, nombre, apellido, telefono, escuela_id }) });
-      const r=await api('/api/paciente?ci='+encodeURIComponent(ci));
-      currentPacienteId = r?.data?.id; pacienteExiste = true;
-      if(!currentPacienteId) return setMsg('No se pudo resolver el ID del paciente',true);
-
-      const dirBody={
-        paciente_id: currentPacienteId,
-        ciudad: val('d-ciudad'),
-        direccion: val('d-direccion'),
-        zona: val('d-zona'),
-        referencia: val('d-referencia'),
-        sector: val('d-sector')
-      };
-      await api('/api/direccion',{ method:'POST', body: JSON.stringify(dirBody) });
-    } else {
-      // Si existe, aplica cambios de dirección (PUT) antes de crear la cita
-      await document.getElementById('btnActualizarDir').onclick();
-    }
-
-    const seguro_id = Number((document.getElementById('c-seguro').value||'').trim());
-    const fecha     = val('c-fecha');
-    const hora      = val('c-hora');
-    const sintomas  = val('c-sintomas');
-
-    if(!seguro_id||!fecha) return setMsg('Seguro y Fecha son obligatorios',true);
-
-    const citaBody = { paciente_id: currentPacienteId, seguro_id, fecha, hora, sintomas };
-    if (isMAWDY()){
-      const as=val('c-asistencia'), mv=val('c-movimiento');
-      if (as) citaBody.asistencia = as.replace(/\D/g,'');
-      if (mv) citaBody.movimiento = mv.replace(/\D/g,'');
-    }
-
-    const resp = await api('/api/cita',{ method:'POST', body: JSON.stringify(citaBody) });
-    document.getElementById('citaId').value = resp?.id || '';
-    document.getElementById('btnImprimir').disabled = !resp?.id;
-    setMsg(`Cita creada #${resp?.id||''}. Puedes imprimir la Orden.`);
-    window.open(`/app/orden.html?cita_id=${encodeURIComponent(resp?.id||'')}`,'_blank');
-  }catch(e){ setMsg(e?.body?.error||'Error al crear cita',true); }
-};
-
-document.getElementById('btnImprimir').onclick = ()=>{
-  const id = (document.getElementById('citaId').value||'').trim();
-  if(id) window.open(`/app/orden.html?cita_id=${encodeURIComponent(id)}`,'_blank');
-};
-</script>
-</body>
-</html>
+const $ = id => document.getElementById(id);
