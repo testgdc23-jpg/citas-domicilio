@@ -1,220 +1,146 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Citas</title>
-  <link rel="stylesheet" href="/app/assets/css/styles.css">
+  <link rel="stylesheet" href="/app/assets/css/styles.css"/>
 </head>
 <body class="app">
-  <div class="container">
-    <h1>Citas</h1>
-    <p><a class="pill" href="/">← Volver</a></p>
+<div class="container">
+  <h1>Citas</h1>
+  <p><a class="pill" href="/">← Volver</a></p>
 
-    <div id="msg" class="alert"></div>
+  <div id="msg" class="alert"></div>
 
-    <!-- Selector Paciente + Dirección -->
+  <fieldset style="margin-top:10px;border:1px solid #223257;border-radius:10px;padding:12px;">
+    <legend>Agendar Cita</legend>
+
     <div class="form-row">
       <label>Paciente
-        <select id="selPaciente">
-          <option value="">-- Selecciona un paciente --</option>
+        <select id="paciente">
+          <option value="">— Selecciona un paciente —</option>
         </select>
       </label>
-      <label>Dirección
-        <select id="selDireccion" disabled>
-          <option value="">-- Selecciona primero un paciente --</option>
+
+      <label>Seguro
+        <select id="seguro">
+          <option value="">— Selecciona un seguro —</option>
         </select>
+      </label>
+
+      <label>Fecha
+        <input type="date" id="fecha"/>
+      </label>
+
+      <label>Hora
+        <input type="time" id="hora"/>
       </label>
     </div>
 
-    <!-- Crear cita -->
-    <fieldset style="margin-top:16px; border:1px solid #223257; border-radius:10px; padding:12px;">
-      <legend>Crear cita</legend>
-      <div class="form-row">
-        <label>Fecha
-          <input id="fecha" type="date" />
-        </label>
-        <label>Hora
-          <input id="hora" type="time" />
-        </label>
-        <label>Síntomas
-          <input id="sintomas" placeholder="Descripción breve" />
-        </label>
-      </div>
-      <div class="form-row">
-        <button id="btnCrear">Crear cita</button>
-      </div>
-    </fieldset>
-
-    <!-- Filtros -->
-    <div class="form-row" style="margin-top:10px;">
-      <label>Filtrar por Paciente
-        <select id="fPaciente">
-          <option value="">(Todos)</option>
-        </select>
+    <div class="form-row">
+      <label style="flex:1;">Síntomas
+        <input id="sintomas" placeholder="Descripción de síntomas"/>
       </label>
-      <label>Filtrar por Fecha
-        <input id="fFecha" type="date" />
-      </label>
-      <button id="btnFiltrar" class="secondary">Aplicar filtros</button>
     </div>
 
-    <!-- Tabla -->
-    <table class="table" id="tbl">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Paciente</th>
-          <th>Dirección</th>
-          <th>Fecha</th>
-          <th>Hora</th>
-          <th>Estado</th>
-          <th>Mov.</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+    <div id="mawdyBox" class="form-row" style="display:none;">
+      <label>Asistencia
+        <input id="asistencia" inputmode="numeric" maxlength="9" placeholder="9 dígitos"/>
+      </label>
+      <label>Movimiento
+        <input id="movimiento" inputmode="numeric" maxlength="6" placeholder="6 dígitos"/>
+      </label>
+    </div>
 
-  <script src="/app/assets/js/common.js"></script>
-  <script>
-    const msg = document.querySelector('#msg');
-    const selPaciente = document.querySelector('#selPaciente');
-    const selDireccion = document.querySelector('#selDireccion');
-    const btnCrear = document.querySelector('#btnCrear');
+    <div class="form-row">
+      <button id="btnAgendar" type="button">Agendar</button>
+      <button id="btnOrden" type="button" class="secondary" disabled>Generar Orden</button>
+    </div>
 
-    const fPaciente = document.querySelector('#fPaciente');
-    const fFecha = document.querySelector('#fFecha');
-    const btnFiltrar = document.querySelector('#btnFiltrar');
-    const tbody = document.querySelector('#tbl tbody');
+    <input id="citaId" type="hidden" value=""/>
+  </fieldset>
+</div>
 
-    // Util: leer querystring (para precargar paciente/dirección)
-    function getQS(name) {
-      const u = new URL(location.href);
-      return u.searchParams.get(name);
+<script src="/app/assets/js/common.js"></script>
+<script>
+const msg = document.querySelector('#msg');
+const paciente = document.querySelector('#paciente');
+const seguro   = document.querySelector('#seguro');
+const fecha    = document.querySelector('#fecha');
+const hora     = document.querySelector('#hora');
+const sintomas = document.querySelector('#sintomas');
+const mawdyBox = document.querySelector('#mawdyBox');
+const asistencia = document.querySelector('#asistencia');
+const movimiento = document.querySelector('#movimiento');
+const btnAgendar = document.querySelector('#btnAgendar');
+const btnOrden   = document.querySelector('#btnOrden');
+const citaId     = document.querySelector('#citaId');
+
+function isMAWDY() {
+  const opt = seguro.options[seguro.selectedIndex];
+  return opt && opt.textContent.trim().toUpperCase() === 'MAWDY';
+}
+
+seguro.addEventListener('change', () => {
+  if (isMAWDY()) mawdyBox.style.display = 'flex';
+  else { mawdyBox.style.display = 'none'; asistencia.value=''; movimiento.value=''; }
+});
+
+async function cargarPacientes() {
+  const payload = await api('/api/paciente');
+  const list = payload?.data ?? [];
+  paciente.innerHTML = '<option value="">— Selecciona un paciente —</option>' +
+    list.map(p => `<option value="${p.id}">${p.apellido.toUpperCase()}, ${p.nombre} (CI:${p.ci})</option>`).join('');
+}
+
+async function cargarSeguros() {
+  const payload = await api('/api/seguro');
+  const list = payload?.data ?? [];
+  // Puedes forzar orden específico aquí si lo prefieres
+  const orden = ['KLS','MAWDY','KLS LABORATORIO','PLAN VITAL','PROASSISLIFE'];
+  const sorted = [...list].sort((a,b) => orden.indexOf(a.Nombre) - orden.indexOf(b.Nombre));
+  seguro.innerHTML = '<option value="">— Selecciona un seguro —</option>' +
+    sorted.map(s => `<option value="${s.id}">${s.Nombre}</option>`).join('');
+}
+
+async function agendar() {
+  try {
+    const paciente_id = Number(paciente.value);
+    const seguro_id   = Number(seguro.value);
+    const f = (fecha.value || '').trim();
+    const h = (hora.value || '').trim();
+    const s = (sintomas.value || '').trim();
+
+    if (!paciente_id || !seguro_id || !f) return setAlert(msg, 'Paciente, Seguro y Fecha son obligatorios', true);
+
+    const body = { paciente_id, seguro_id, fecha: f, hora: h, sintomas: s };
+    if (isMAWDY()) {
+      if (asistencia.value) body.asistencia = asistencia.value.replace(/\D/g,'');
+      if (movimiento.value) body.movimiento = movimiento.value.replace(/\D/g,'');
     }
 
-    async function cargarPacientesEn(selectEl, addTodos=false) {
-      const { ok, data } = await api('/api/paciente');
-      if (!ok) throw new Error('No se pudieron cargar pacientes');
-      // ordena alfabéticamente
-      data.sort((a, b) => (a.apellido + a.nombre).localeCompare(b.apellido + b.nombre, 'es'));
-      let html = addTodos ? '<option value="">(Todos)</option>' : '<option value="">-- Selecciona un paciente --</option>';
-      html += data.map(p => `<option value="${p.id}">${p.apellido.toUpperCase()}, ${p.nombre} (CI: ${p.ci})</option>`).join('');
-      selectEl.innerHTML = html;
-      return data;
-    }
+    const res = await api('/api/cita', { method: 'POST', body: JSON.stringify(body) });
+    citaId.value = res?.id || '';
+    btnOrden.disabled = !citaId.value;
+    setAlert(msg, `Cita creada #${citaId.value || ''}`);
+  } catch (e) {
+    console.error(e);
+    setAlert(msg, e?.body?.error || 'Error al agendar', true);
+  }
+}
 
-    async function cargarDireccionesDePaciente(pId) {
-      selDireccion.disabled = true;
-      selDireccion.innerHTML = '<option value="">(Sin direcciones)</option>';
-      if (!pId) return [];
-      const { ok, data } = await api(`/api/direccion?paciente_id=${pId}`);
-      if (!ok) throw new Error('No se pudieron cargar direcciones');
-      if (data.length === 0) {
-        selDireccion.innerHTML = '<option value="">(Sin direcciones registradas)</option>';
-      } else {
-        selDireccion.innerHTML = '<option value="">-- Selecciona una dirección --</option>' +
-          data.map(d => `<option value="${d.id}">${d.direccion} · ${d.ciudad ?? ''} · ${d.zona ?? ''}</option>`).join('');
-        selDireccion.disabled = false;
-      }
-      return data;
-    }
+function abrirOrden() {
+  if (!citaId.value) return;
+  window.open(`/app/orden.html?cita_id=${encodeURIComponent(citaId.value)}`, '_blank');
+}
 
-    async function listar() {
-      const params = new URLSearchParams();
-      const p = fPaciente.value.trim();
-      const fe = fFecha.value.trim();
-      if (p) params.set('paciente_id', p);
-      if (fe) params.set('fecha', fe);
-      const qs = params.toString() ? `?${params.toString()}` : '';
-      const { ok, data } = await api(`/api/cita${qs}`);
-      if (!ok) throw new Error('No se pudieron listar citas');
-      tbody.innerHTML = (data ?? []).map(c => `
-        <tr data-id="${c.id}">
-          <td>${c.id}</td>
-          <td>${c.paciente_id}</td>
-          <td>${c.direccion_id}</td>
-          <td>${c.fecha}</td>
-          <td>${c.hora}</td>
-          <td>${c.estado}</td>
-          <td>${c.movimiento ?? 0}</td>
-          <td class="actions">
-            <button onclick="estado(${c.id}, 'confirmada')">Confirmar</button>
-            <button onclick="estado(${c.id}, 'atendida')">Atendida</button>
-            <button class="secondary" onclick="estado(${c.id}, 'cancelada')">Cancelar</button>
-          </td>
-        </tr>
-      `).join('');
-      if (!data || data.length === 0) {
-        setAlert(msg, 'No hay citas para los filtros seleccionados.');
-      }
-    }
-
-    async function crear() {
-      const paciente_id = Number(selPaciente.value);
-      const direccion_id = Number(selDireccion.value);
-      const fecha = document.querySelector('#fecha').value;
-      const hora = document.querySelector('#hora').value;
-      const sintomas = document.querySelector('#sintomas').value.trim();
-
-      if (!paciente_id || !direccion_id || !fecha || !hora) {
-        return setAlert(msg, 'Paciente, Dirección, Fecha y Hora son obligatorios', true);
-      }
-
-      try {
-        const r = await api('/api/cita', {
-          method: 'POST',
-          body: JSON.stringify({ paciente_id, direccion_id, fecha, hora, sintomas })
-        });
-        setAlert(msg, `Cita creada (id ${r.id})`);
-        await listar();
-      } catch (e) {
-        setAlert(msg, e.message, true);
-      }
-    }
-
-    window.estado = async function(cita_id, nuevo_estado) {
-      try {
-        await api('/api/cita_estado', {
-          method: 'POST',
-          body: JSON.stringify({ cita_id, nuevo_estado })
-        });
-        await listar();
-      } catch (e) {
-        setAlert(msg, e.message, true);
-      }
-    }
-
-    // Eventos
-    selPaciente.addEventListener('change', async () => {
-      await cargarDireccionesDePaciente(Number(selPaciente.value));
-    });
-    btnCrear.addEventListener('click', crear);
-    btnFiltrar.addEventListener('click', listar);
-
-    // Carga inicial
-    addEventListener('DOMContentLoaded', async () => {
-      // Pacientes para crear
-      const pacientes = await cargarPacientesEn(selPaciente, false);
-      // Pacientes para filtrar
-      await cargarPacientesEn(fPaciente, true);
-
-      // Pre-carga desde querystring
-      const qsPaciente = Number(getQS('paciente_id') ?? 0);
-      const qsDireccion = Number(getQS('direccion_id') ?? 0);
-      if (qsPaciente > 0) {
-        selPaciente.value = String(qsPaciente);
-        const dirs = await cargarDireccionesDePaciente(qsPaciente);
-        if (qsDireccion > 0 && dirs.some(d => Number(d.id) === qsDireccion)) {
-          selDireccion.value = String(qsDireccion);
-        }
-      }
-
-      // Listado inicial (por fecha actual opcional)
-      await listar();
-    });
-  </script>
+document.addEventListener('DOMContentLoaded', async () => {
+  await cargarPacientes();
+  await cargarSeguros();
+});
+btnAgendar.addEventListener('click', agendar);
+btnOrden.addEventListener('click', abrirOrden);
+</script>
 </body>
 </html>
