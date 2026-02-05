@@ -6,59 +6,62 @@
   <title>Orden de Atención</title>
   <link rel="stylesheet" href="/app/assets/css/styles.css"/>
   <style>
-    body { background:#fff; color:#000; }
-    .orden { max-width:980px; margin:16px auto; border:2px solid #222; }
-    .orden h2 { margin:0; padding:12px; background:#eee; border-bottom:2px solid #222; text-align:center; }
-    .grid { width:100%; border-collapse:collapse; }
-    .grid td { border:1px solid #222; padding:6px 10px; vertical-align:top; }
-    .cell-title { width:35%; font-weight:bold; background:#f3f3f3; }
-    .tag-yellow { background:#ffeb3b; font-weight:bold; padding:2px 6px; display:inline-block; }
-    .actions { text-align:right; margin:10px auto; max-width:980px; }
+    body{background:#fff;color:#000}
+    .sheet{max-width:920px;margin:14px auto;border:2px solid #2b2b2b}
+    .hdr{background:#9ad091;color:#000;padding:10px 12px;border-bottom:2px solid #2b2b2b;text-align:center;font-weight:bold}
+    .tbl{width:100%;border-collapse:collapse}
+    .tbl td{border:1px solid #2b2b2b;padding:6px 8px;vertical-align:middle}
+    .label{width:40%;font-weight:bold;background:#e7e7e7}
+    .yellow{background:#ffe34d;font-weight:bold;text-transform:uppercase;text-align:center}
+    .pink{background:#ffd6f1;font-weight:bold;text-transform:uppercase;text-align:center}
+    .bar{display:flex;justify-content:space-between;max-width:920px;margin:8px auto}
   </style>
 </head>
 <body>
-<div class="actions">
+<div class="bar">
   <button onclick="window.print()">Imprimir / PDF</button>
-  <a class="pill" href="/">← Volver</a>
+  <a href="/">← Inicio</a>
 </div>
-<div class="orden">
-  <h2 id="titulo">ORDEN DE ATENCIÓN</h2>
-  <table class="grid"><tbody id="rows"></tbody></table>
+
+<div class="sheet">
+  <div id="hdr" class="hdr">ORDEN DE ATENCIÓN</div>
+  <table class="tbl"><tbody id="rows"></tbody></table>
 </div>
 
 <script>
-function param(name){ return new URL(location.href).searchParams.get(name); }
-function addRow(t,label,value){ const tr=document.createElement('tr'); tr.innerHTML=`<td class="cell-title">${label}</td><td>${value??''}</td>`; t.appendChild(tr); }
+function q(k){return new URL(location.href).searchParams.get(k);}
+function row(t,lbl,val,klass=''){const tr=document.createElement('tr'); tr.innerHTML=`<td class="label">${lbl}</td><td class="${klass}">${val??''}</td>`; t.appendChild(tr);}
+async function load(){
+  const id=q('cita_id'); const t=document.getElementById('rows'); if(!id){ row(t,'Error','Falta cita_id'); return; }
+  const r=await fetch(`/api/orden/${id}`).then(x=>x.json()).catch(()=>null);
+  if(!r||!r.ok){ row(t,'Error','No se pudo cargar la cita'); return; }
+  const d=r.data; document.getElementById('hdr').textContent=`ORDEN DE ATENCIÓN SEGURO ${ (d.seguro||'').toUpperCase() }`;
 
-async function cargar(){
-  const id = param('cita_id');
-  const res = await fetch(`/api/orden/${id}`).then(r=>r.json()).catch(()=>null);
-  const rows = document.querySelector('#rows');
-  if (!res || !res.ok) { addRow(rows,'Error','No se pudo cargar la cita'); return; }
+  row(t,'CÓDIGO DE SERVICIO','');                     // si luego defines un código, lo traemos desde /api/orden
+  row(t,'TRIAJE MANCHESTER','CÓDIGO AMARILLO','yellow'); // placeholder configurable
+  row(t,'SÍNTOMAS', d.sintomas || '');
+  row(t,'NOMBRE BENEFICIO/SERVICIO','MÉDICO A DOMICILIO','pink');
 
-  const d = res.data;
-  document.querySelector('#titulo').textContent = `ORDEN DE ATENCIÓN SEGURO ${d.seguro || ''}`.trim();
+  row(t,'CÉDULA DEL TITULAR', d.paciente_ci || '');
+  row(t,'NOMBRE PACIENTE', d.paciente_nombre || '');
+  row(t,'CÉDULA DEL PACIENTE', d.paciente_ci || '');
 
-  addRow(rows,'CÓDIGO DE SERVICIO', d.codigo_servicio || '');
-  addRow(rows,'TRIAJE MANCHESTER', '<span class="tag-yellow">CÓDIGO AMARILLO</span>');
-  addRow(rows,'SÍNTOMAS', d.sintomas || '');
-  addRow(rows,'NOMBRE BENEFICIO/SERVICIO', 'MÉDICO A DOMICILIO');
-  addRow(rows,'CÉDULA DEL TITULAR', d.paciente_ci || '');
-  addRow(rows,'NOMBRE PACIENTE', d.paciente_nombre || '');
-  addRow(rows,'CÉDULA DEL PACIENTE', d.paciente_ci || '');
-  addRow(rows,'EDAD DEL PACIENTE', d.paciente_edad ?? '');
-  addRow(rows,'DIRECCIÓN', d.direccion || '');
-  addRow(rows,'REFERENCIA', d.referencia || '');
-  addRow(rows,'SECTOR', d.sector || '');
-  addRow(rows,'HORA DESPACHO EQUIPO MÉDICO', d.hora || '');
-  addRow(rows,'VALOR COPAGO', (Number(d.copago||0)).toFixed(2));
-  addRow(rows,'TRASLADO AMBULANCIA', d.traslado || 0);
-  addRow(rows,'CONTACTO', d.telefono || '');
-  addRow(rows,'MOVIMIENTO', d.movimiento ?? '');
-  addRow(rows,'COORDINADO CON', d.medico_coordinador || '');
+  // Datos de domicilio
+  row(t,'DIRECCIÓN', d.direccion || '');
+  row(t,'REFERENCIA', d.referencia || '');
+  row(t,'SECTOR', d.sector || '');
+  row(t,'CIUDAD', d.ciudad || '');
+  row(t,'ZONA', d.zona || '');
+
+  row(t,'HORA DESPACHO EQUIPO MÉDICO', d.hora || '');
+  row(t,'VALOR COPAGO', Number(d.copago||0).toFixed(2));
+  row(t,'TRASLADO AMBULANCIA', 0);
+  row(t,'CONTACTO', d.telefono || '');
+
+  row(t,'ASISTENCIA (MAWDY)', d.asistencia ?? '');
+  row(t,'MOVIMIENTO (MAWDY)', d.movimiento ?? '');
 }
-
-document.addEventListener('DOMContentLoaded', cargar);
+document.addEventListener('DOMContentLoaded', load);
 </script>
 </body>
 </html>
