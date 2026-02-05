@@ -7,25 +7,54 @@ export const onRequestGet = async ({ env, request }) => {
 
   let sql = `
     SELECT
-      p.id as pago_id,
-      c.id as cita_id,
-      c.Fecha as fecha,
-      c.Hora as hora,
-      s.Nombre as seguro,
-      pa.CI as paciente_ci,
-      TRIM(pa.Nombre || ' ' || pa.Apellido) as paciente_nombre,
-      p.Copago as copago,
-      p.Medicina as medicina,
-      p.TotalRecibido as total,
-      p.ValorTransferido as transferido,
-      p.FormaPago as forma_pago,
-      p.FechaPago as fecha_pago
-    FROM PAGO p
-    JOIN CITA c ON c.id = p.Cita_id
-    LEFT JOIN SEGURO s ON s.id = c.Seguro_id
-    JOIN PACIENTE pa ON pa.id = c.Paciente_id
+      c.id              AS cita_id,
+      c.Fecha           AS cita_fecha,
+      c.Hora            AS cita_hora,
+      c.Sintomas        AS cita_sintomas,
+      c.Asistencia      AS cita_asistencia,
+      c.Movimiento      AS cita_movimiento,
+      c.Estado          AS cita_estado,
+
+      s.nombre          AS seguro,
+
+      p.CI              AS paciente_ci,
+      p.Nombre          AS paciente_nombre,
+      p.Apellido        AS paciente_apellido,
+      p.Telefono        AS paciente_telefono,
+
+      e.Direccion       AS escuela_direccion,
+      e.Sector          AS escuela_sector,
+
+      d.Ciudad          AS direccion_ciudad,
+      d.Direccion       AS direccion_calle,
+      d.Zona            AS direccion_zona,
+      d.Referencia      AS direccion_referencia,
+      d.Sector          AS direccion_sector,
+
+      dg.Diagnostico    AS diag_diagnostico,
+      dg.Medicacion_Administrada AS diag_medicacion,
+      dg.Receta         AS diag_receta,
+      dg.Tratamiento    AS diag_tratamiento,
+      dg.Observaciones  AS diag_observaciones,
+
+      pg.id             AS pago_id,
+      pg.Copago         AS pago_copago,
+      pg.Medicina       AS pago_medicina,
+      pg.TotalRecibido  AS pago_total,
+      pg.ValorTransferido AS pago_transferido,
+      pg.FormaPago      AS pago_forma,
+      pg.FechaPago      AS pago_fecha
+
+    FROM cita c
+    JOIN paciente p       ON p.id = c.Paciente_id
+    LEFT JOIN direccion d  ON d.Paciente_id = p.id        -- última dirección
+    LEFT JOIN escuela e    ON e.id = p.Escuela_id
+    LEFT JOIN seguro s     ON s.id = c.Seguro_id
+    LEFT JOIN diagnostico dg ON dg.Cita_id = c.id
+    LEFT JOIN pago pg      ON pg.Cita_id = c.id
     WHERE 1=1
   `;
+
   const params = [];
   if (desde) { sql += ` AND date(c.Fecha) >= date(?)`; params.push(desde); }
   if (hasta) { sql += ` AND date(c.Fecha) <= date(?)`; params.push(hasta); }
@@ -35,10 +64,17 @@ export const onRequestGet = async ({ env, request }) => {
   const { results } = await env.DB.prepare(sql).bind(...params).all();
   const rows = results || [];
 
+  // Cabecera amplia
   const header = [
-    'pago_id','cita_id','fecha','hora','seguro','paciente_ci','paciente_nombre',
-    'copago','medicina','total','transferido','forma_pago','fecha_pago'
+    'cita_id','cita_fecha','cita_hora','cita_sintomas','cita_asistencia','cita_movimiento','cita_estado',
+    'seguro',
+    'paciente_ci','paciente_nombre','paciente_apellido','paciente_telefono',
+    'escuela_direccion','escuela_sector',
+    'direccion_ciudad','direccion_calle','direccion_zona','direccion_referencia','direccion_sector',
+    'diag_diagnostico','diag_medicacion','diag_receta','diag_tratamiento','diag_observaciones',
+    'pago_id','pago_copago','pago_medicina','pago_total','pago_transferido','pago_forma','pago_fecha'
   ];
+
   const csv = [
     header.join(','),
     ...rows.map(r => header.map(h => {
