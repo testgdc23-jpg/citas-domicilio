@@ -9,10 +9,8 @@ export const onRequest = async ({ request, env }) => {
 
     const row = await env.DB
       .prepare(`SELECT id, Ciudad, Direccion, Zona, Referencia, Sector
-                FROM direccion
-                WHERE Paciente_id = ?
-                ORDER BY id DESC
-                LIMIT 1`)
+                FROM direccion WHERE Paciente_id = ?
+                ORDER BY id DESC LIMIT 1`)
       .bind(paciente_id)
       .first();
 
@@ -44,7 +42,6 @@ export const onRequest = async ({ request, env }) => {
     const paciente_id = Number(body.paciente_id || 0);
     if (!paciente_id) return json({ ok:false, error:'paciente_id requerido' }, 400);
 
-    // Actualiza la última dirección; si no hay, crea una nueva
     const last = await env.DB
       .prepare(`SELECT id FROM direccion WHERE Paciente_id = ? ORDER BY id DESC LIMIT 1`)
       .bind(paciente_id)
