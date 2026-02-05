@@ -20,10 +20,10 @@ export const onRequestPost = async ({ env, request }) => {
     return json({ ok:false, error:"Campos requeridos: paciente_id, seguro_id, fecha" }, 400);
   }
 
-  const seg = await env.DB.prepare(`SELECT id, Nombre FROM SEGURO WHERE id=?`).bind(seguro_id).first();
+  // Ajustado a tu esquema: seguro.nombre en minúsculas
+  const seg = await env.DB.prepare(`SELECT id, nombre AS Nombre FROM seguro WHERE id=?`).bind(seguro_id).first();
   if (!seg) return json({ ok:false, error:"Seguro inválido" }, 400);
 
-  // Excepción MAWDY: validar formatos si vienen; ambos pueden ser NULL.
   if (seg.Nombre.toUpperCase() === 'MAWDY') {
     if (asistencia !== null && asistencia !== undefined && asistencia !== '') {
       const s = String(asistencia).trim();
@@ -44,7 +44,7 @@ export const onRequestPost = async ({ env, request }) => {
   try {
     const res = await env.DB
       .prepare(`
-        INSERT INTO CITA (Paciente_id, Seguro_id, Fecha, Hora, Sintomas, Asistencia, Movimiento, Estado)
+        INSERT INTO cita (Paciente_id, Seguro_id, Fecha, Hora, Sintomas, Asistencia, Movimiento, Estado)
         VALUES (?, ?, ?, ?, ?, ?, ?, 'agendada')
       `)
       .bind(paciente_id, seguro_id, fecha, hora, sintomas, asistencia, movimiento)
