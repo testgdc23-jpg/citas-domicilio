@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Reportes CSV — Facturación</title>
+  <link rel="stylesheet" href="/app/assets/css/styles.css"/>
+  <style>
+    fieldset{border:1px solid #223257;border-radius:10px;padding:12px;margin-bottom:14px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}.row>*{min-width:220px;flex:1}
+  </style>
+</head>
+<body class="app">
+<div class="container">
+  <h1>Reportes CSV — Facturación</h1>
+  <p><a class="pill" href="/">← Inicio</a></p>
+
+  <fieldset>
+    <legend>Parámetros</legend>
+    <div class="row">
+      <label>Desde <input id="desde" type="date"/></label>
+      <label>Hasta <input id="hasta" type="date"/></label>
+      <label>Seguro
+        <select id="seguro"><option value="0">Todos</option></select>
+      </label>
+    </div>
+    <div class="row">
+      <button id="btnCsv" type="button">Descargar CSV</button>
+    </div>
+  </fieldset>
+</div>
+
+<script>
+async function api(u){ const r=await fetch(u); return r.json(); }
+document.addEventListener('DOMContentLoaded', async ()=>{
+  try{ const p=await api('/api/seguro'); const L=p?.data??[]; const s=document.getElementById('seguro'); s.innerHTML='<option value="0">Todos</option>'+ L.map(x=>`<option value="${x.id}">${x.Nombre}</option>`).join(''); }catch{}
+});
+document.getElementById('btnCsv').onclick = ()=>{
+  const d=document.getElementById('desde').value||'', h=document.getElementById('hasta').value||'', s=document.getElementById('seguro').value||'0';
+  const qs=new URLSearchParams(); if(d)qs.set('desde',d); if(h)qs.set('hasta',h); if(Number(s)>0)qs.set('seguro_id',s);
+  location.href=`/api/reporte/facturacion?${qs.toString()}`;
+};
+</script>
+</body>
+</html>
