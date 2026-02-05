@@ -8,7 +8,9 @@
   <style>
     fieldset{border:1px solid #223257;border-radius:10px;padding:12px;margin-bottom:14px}
     .row{display:flex;gap:10px;flex-wrap:wrap}.row>*{min-width:220px;flex:1}
-    pre{background:#0b1533;color:#dbe4ff;padding:10px;border-radius:8px;white-space:pre-wrap}
+    textarea{width:100%; min-height:90px}
+    .panel{background:#0b1533;border:1px solid #223257;border-radius:8px;padding:10px;color:#e8eefc}
+    .k{color:#8ab4ff}
   </style>
 </head>
 <body class="app">
@@ -18,27 +20,36 @@
   <div id="msg" class="alert"></div>
 
   <fieldset>
-    <legend>Diagnóstico</legend>
+    <legend>Consultar</legend>
     <div class="row">
       <label>ID Cita <input id="cita" inputmode="numeric" placeholder="ID"/></label>
-    </div>
-    <div class="row">
       <button id="btnVer" class="secondary" type="button">Ver diagnóstico</button>
     </div>
-    <div id="box" class="row" style="display:none;">
-      <pre id="diagView"></pre>
-    </div>
-    <hr/>
+    <div id="view" class="panel" style="display:none;"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Registrar / Actualizar</legend>
     <div class="row">
-      <label style="flex:2;">Diagnóstico <input id="diag"/></label>
+      <label>Diagnóstico
+        <textarea id="diag" placeholder="Resumen diagnóstico"></textarea>
+      </label>
     </div>
     <div class="row">
-      <label>Medicación Administrada <input id="medadm"/></label>
-      <label>Receta <input id="receta"/></label>
+      <label>Medicación Administrada
+        <textarea id="medadm" placeholder="Detalle medicación"></textarea>
+      </label>
+      <label>Receta
+        <textarea id="receta" placeholder="Receta"></textarea>
+      </label>
     </div>
     <div class="row">
-      <label>Tratamiento <input id="trat"/></label>
-      <label>Observaciones <input id="obs"/></label>
+      <label>Tratamiento
+        <textarea id="trat" placeholder="Tratamiento"></textarea>
+      </label>
+      <label>Observaciones
+        <textarea id="obs" placeholder="Observaciones"></textarea>
+      </label>
     </div>
     <div class="row">
       <button id="btnGuardar" type="button">Guardar</button>
@@ -49,22 +60,31 @@
 <script>
 async function api(u,o={}){ const r=await fetch(u,{headers:{'Content-Type':'application/json'},...o}); const ct=r.headers.get('Content-Type')||''; const b=ct.includes('json')?await r.json():await r.text(); if(!r.ok) throw Object.assign(new Error('HTTP '+r.status),{status:r.status,body:b}); return b;}
 function setMsg(t,err){ const el=document.getElementById('msg'); el.textContent=t||''; el.style.display=t?'block':'none'; el.classList.toggle('error',!!err); }
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
 
-const cita=document.getElementById('cita');
 document.getElementById('btnVer').onclick = async ()=>{
   try{
-    const id = Number((cita.value||'').trim()); if(!id) return setMsg('Ingresa ID de cita',true);
+    const id = Number((document.getElementById('cita').value||'').trim()); if(!id) return setMsg('Ingresa ID de cita',true);
     const r = await api('/api/diagnostico?cita_id='+id);
-    document.getElementById('box').style.display='block';
-    document.getElementById('diagView').textContent = r?.data ? JSON.stringify(r.data, null, 2) : '(Sin diagnóstico)';
+    const d = r?.data;
+    const box = document.getElementById('view');
+    if (!d) { box.style.display='block'; box.innerHTML='<i>(Sin diagnóstico para esta cita)</i>'; return setMsg(''); }
+    box.style.display='block';
+    box.innerHTML = `
+      <div><span class="k">Cita:</span> ${escapeHtml(d.Cita_id)}</div>
+      <div><span class="k">Diagnóstico:</span> ${escapeHtml(d.Diagnostico)}</div>
+      <div><span class="k">Medicación Administrada:</span> ${escapeHtml(d.Medicacion_Administrada)}</div>
+      <div><span class="k">Receta:</span> ${escapeHtml(d.Receta)}</div>
+      <div><span class="k">Tratamiento:</span> ${escapeHtml(d.Tratamiento)}</div>
+      <div><span class="k">Observaciones:</span> ${escapeHtml(d.Observaciones)}</div>`;
     setMsg('');
   }catch(e){ setMsg(e?.body?.error||'Error al consultar diagnóstico',true); }
 };
 
 document.getElementById('btnGuardar').onclick = async ()=>{
   try{
-    const body={ cita_id:Number((cita.value||'').trim()), diagnostico:(document.getElementById('diag').value||'').trim(), medicacion_administrada:(document.getElementById('medadm').value||'').trim(), receta:(document.getElementById('receta').value||'').trim(), tratamiento:(document.getElementById('trat').value||'').trim(), observaciones:(document.getElementById('obs').value||'').trim() };
-    if(!body.cita_id) return setMsg('Ingresa ID de cita',true);
+    const id = Number((document.getElementById('cita').value||'').trim()); if(!id) return setMsg('Ingresa ID de cita',true);
+    const body={ cita_id:id, diagnostico:document.getElementById('diag').value, medicacion_administrada:document.getElementById('medadm').value, receta:document.getElementById('receta').value, tratamiento:document.getElementById('trat').value, observaciones:document.getElementById('obs').value };
     await api('/api/diagnostico',{method:'POST',body:JSON.stringify(body)});
     setMsg('Diagnóstico guardado');
   }catch(e){ setMsg(e?.body?.error||'Error al guardar diagnóstico',true); }
