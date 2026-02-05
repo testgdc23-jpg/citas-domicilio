@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Orden de Atención</title>
+  <link rel="stylesheet" href="/app/assets/css/styles.css"/>
+  <style>
+    body { background:#fff; color:#000; }
+    .orden { max-width:980px; margin:16px auto; border:2px solid #222; }
+    .orden h2 { margin:0; padding:12px; background:#eee; border-bottom:2px solid #222; text-align:center; }
+    .grid { width:100%; border-collapse:collapse; }
+    .grid td { border:1px solid #222; padding:6px 10px; vertical-align:top; }
+    .cell-title { width:35%; font-weight:bold; background:#f3f3f3; }
+    .tag-yellow { background:#ffeb3b; font-weight:bold; padding:2px 6px; display:inline-block; }
+    .actions { text-align:right; margin:10px auto; max-width:980px; }
+  </style>
+</head>
+<body>
+<div class="actions">
+  <button onclick="window.print()">Imprimir / PDF</button>
+  <a class="pill" href="/">← Volver</a>
+</div>
+<div class="orden">
+  <h2 id="titulo">ORDEN DE ATENCIÓN</h2>
+  <table class="grid"><tbody id="rows"></tbody></table>
+</div>
+
+<script>
+function param(name){ return new URL(location.href).searchParams.get(name); }
+function addRow(t,label,value){ const tr=document.createElement('tr'); tr.innerHTML=`<td class="cell-title">${label}</td><td>${value??''}</td>`; t.appendChild(tr); }
+
+async function cargar(){
+  const id = param('cita_id');
+  const res = await fetch(`/api/orden/${id}`).then(r=>r.json()).catch(()=>null);
+  const rows = document.querySelector('#rows');
+  if (!res || !res.ok) { addRow(rows,'Error','No se pudo cargar la cita'); return; }
+
+  const d = res.data;
+  document.querySelector('#titulo').textContent = `ORDEN DE ATENCIÓN SEGURO ${d.seguro || ''}`.trim();
+
+  addRow(rows,'CÓDIGO DE SERVICIO', d.codigo_servicio || '');
+  addRow(rows,'TRIAJE MANCHESTER', '<span class="tag-yellow">CÓDIGO AMARILLO</span>');
+  addRow(rows,'SÍNTOMAS', d.sintomas || '');
+  addRow(rows,'NOMBRE BENEFICIO/SERVICIO', 'MÉDICO A DOMICILIO');
+  addRow(rows,'CÉDULA DEL TITULAR', d.paciente_ci || '');
+  addRow(rows,'NOMBRE PACIENTE', d.paciente_nombre || '');
+  addRow(rows,'CÉDULA DEL PACIENTE', d.paciente_ci || '');
+  addRow(rows,'EDAD DEL PACIENTE', d.paciente_edad ?? '');
+  addRow(rows,'DIRECCIÓN', d.direccion || '');
+  addRow(rows,'REFERENCIA', d.referencia || '');
+  addRow(rows,'SECTOR', d.sector || '');
+  addRow(rows,'HORA DESPACHO EQUIPO MÉDICO', d.hora || '');
+  addRow(rows,'VALOR COPAGO', (Number(d.copago||0)).toFixed(2));
+  addRow(rows,'TRASLADO AMBULANCIA', d.traslado || 0);
+  addRow(rows,'CONTACTO', d.telefono || '');
+  addRow(rows,'MOVIMIENTO', d.movimiento ?? '');
+  addRow(rows,'COORDINADO CON', d.medico_coordinador || '');
+}
+
+document.addEventListener('DOMContentLoaded', cargar);
+</script>
+</body>
+</html>
