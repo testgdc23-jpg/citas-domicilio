@@ -1,14 +1,15 @@
-import { getUserFromCookie } from './auth/_utils.js';
-
-// POST/PUT /api/diagnostico
-// Body: { cita_id, diagnostico, medicacion_administrada?, receta?, tratamiento?, observaciones? }
+// /api/diagnostico  (POST/PUT)  Body: { cita_id, diagnostico, medicacion_administrada?, receta?, tratamiento?, observaciones? }
 export const onRequest = async (ctx) => {
   const { request, env } = ctx;
   const json = (d,s=200)=>new Response(JSON.stringify(d),{status:s,headers:{'Content-Type':'application/json'}});
 
-  const user = await getUserFromCookie(ctx);
-  if (!user) return json({ ok:false, error:'No autenticado' }, 401);
-  if (user.rol !== 'medico') return json({ ok:false, error:'No autorizado' }, 403);
+  // --- Autenticación opcional ---
+  const AUTH_DISABLED = String(env.DISABLE_AUTH || '').trim() === '1' || !env.AUTH_SECRET;
+  if (!AUTH_DISABLED) {
+    // Intenta leer cookie 'auth'; si no hay, bloquea.
+    const cookie = request.headers.get('Cookie') || '';
+    if (!/auth=/.test(cookie)) return json({ ok:false, error:'No autenticado' }, 401);
+  }
 
   if (request.method !== 'POST' && request.method !== 'PUT')
     return new Response('Method Not Allowed', { status:405 });
@@ -25,22 +26,21 @@ export const onRequest = async (ctx) => {
   const observaciones = (body.observaciones ?? '').toString().trim() || null;
 
   const sql = `
-    INSERT INTO DIAGNOSTICO (Cita_id, Diagnostico, Medicacion_Administrada, Receta, Tratamiento, Observaciones, Medico_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO diagnostico (Cita_id, Diagnostico, Medicacion_Administrada, Receta, Tratamiento, Observaciones)
+    VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(Cita_id) DO UPDATE SET
       Diagnostico=excluded.Diagnostico,
       Medicacion_Administrada=excluded.Medicacion_Administrada,
       Receta=excluded.Receta,
       Tratamiento=excluded.Tratamiento,
-      Observaciones=excluded.Observaciones,
-      Medico_id=excluded.Medico_id
+      Observaciones=excluded.Observaciones
   `;
   await env.DB.prepare(sql).bind(
-    cita_id, diagnostico, medicacion_administrada, receta, tratamiento, observaciones, user.id
+    cita_id, diagnostico, medicacion_administrada, receta, tratamiento, observaciones
   ).run();
 
-  // (Opcional): marcar cita atendida
-  await env.DB.prepare(`UPDATE CITA SET Estado='atendida' WHERE id=?`).bind(cita_id).run();
+  // marcar cita atendida si quieres
+  await env.DB.prepare(`UPDATE cita SET Estado='atendida' WHERE id=?`).bind(cita_id).run();
 
   return json({ ok:true });
 };
