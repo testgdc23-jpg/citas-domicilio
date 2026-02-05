@@ -5,61 +5,50 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Pagos</title>
   <link rel="stylesheet" href="/app/assets/css/styles.css"/>
+  <style>
+    .row{display:flex;gap:10px;flex-wrap:wrap}.row>*{min-width:220px;flex:1}
+    fieldset{border:1px solid #223257;border-radius:10px;padding:12px;margin-bottom:14px}
+    .muted{opacity:.8}
+  </style>
 </head>
-
 <body class="app">
 <div class="container">
   <h1>Pagos</h1>
-  <p><a class="pill" href="/">← Volver</a></p>
+  <p><a class="pill" href="/app/index.html">← Menú</a></p>
+  <div id="msg" class="alert"></div>
 
-  <div id="msg" class="alert" role="status" aria-live="polite"></div>
+  <fieldset>
+    <legend>Búsqueda</legend>
+    <div class="row">
+      <label>CI Paciente
+        <input id="b-ci" placeholder="10 dígitos"/>
+      </label>
+      <button id="btnBuscarCI" class="secondary" type="button">Buscar</button>
 
-  <!-- Selección -->
-  <div class="form-row">
-    <label>Paciente
-      <select id="selPaciente">
-        <option value="">— Selecciona un paciente —</option>
-      </select>
-    </label>
+      <label>ID Cita
+        <input id="b-cita" inputmode="numeric" placeholder="ID"/>
+      </label>
+      <button id="btnBuscarCita" class="secondary" type="button">Ir</button>
+    </div>
+  </fieldset>
 
-    <label>Fecha (opcional)
-      <input type="date" id="fFecha"/>
-    </label>
+  <fieldset>
+    <legend>Selección</legend>
+    <div class="row">
+      <label>Citas del Paciente
+        <select id="selCita"><option value="">— Selecciona —</option></select>
+      </label>
+      <button id="btnVerPago" class="secondary" type="button" disabled>Ver Pago</button>
+    </div>
+  </fieldset>
 
-    <button id="btnBuscarCitas" class="secondary" type="button">Buscar Citas</button>
-  </div>
-
-  <div class="form-row">
-    <label>Cita
-      <select id="selCita" disabled>
-        <option value="">— Selecciona primero un paciente —</option>
-      </select>
-    </label>
-
-    <button id="btnVerPago" class="secondary" type="button" disabled>Ver Pago</button>
-  </div>
-
-  <!-- Formulario Pago -->
-  <fieldset style="margin-top:16px;border:1px solid #223257;border-radius:10px;padding:12px;">
+  <fieldset>
     <legend>Crear / Editar pago</legend>
-
-    <div class="form-row">
-      <label>Copago
-        <input id="copago" type="number" step="0.01" min="0" value="0"/>
-      </label>
-
-      <label>Medicina
-        <input id="medicina" type="number" step="0.01" min="0" value="0"/>
-      </label>
-
-      <label>Total (auto)
-        <input id="total" type="number" step="0.01" min="0" value="0" disabled/>
-      </label>
-
-      <label>Valor transferido
-        <input id="transferido" type="number" step="0.01" min="0" value="0"/>
-      </label>
-
+    <div class="row">
+      <label>Copago <input id="copago" type="number" step="0.01" min="0" value="0"/></label>
+      <label>Medicina <input id="medicina" type="number" step="0.01" min="0" value="0"/></label>
+      <label>Total (auto) <input id="total" type="number" step="0.01" min="0" value="0" disabled/></label>
+      <label>Valor transferido <input id="transferido" type="number" step="0.01" min="0" value="0"/></label>
       <label>Forma de pago
         <select id="forma">
           <option value="">(sin especificar)</option>
@@ -67,330 +56,110 @@
           <option value="transferencia">Transferencia</option>
         </select>
       </label>
-
-      <label>Fecha pago
-        <input id="fechaPago" type="date"/>
-      </label>
-
-      <label style="flex:1;">Observaciones
-        <input id="obs" placeholder="Notas del pago"/>
-      </label>
+      <label>Fecha pago <input id="fechaPago" type="date"/></label>
+      <label style="flex:1;">Observaciones <input id="obs" placeholder="Notas"/></label>
     </div>
-
-    <div class="form-row">
+    <div class="row">
       <button id="btnGuardar" type="button">Guardar</button>
       <button id="btnBorrar" type="button" class="secondary" style="display:none;">Borrar pago</button>
     </div>
-
-    <!-- Hidden -->
     <input type="hidden" id="pagoId" value=""/>
   </fieldset>
 
-  <!-- Tabla -->
   <h3 style="margin-top:18px;">Pagos recientes</h3>
   <table class="table" id="tblPagos">
     <thead>
-    <tr>
-      <th>ID</th><th>Cita</th><th>Copago</th><th>Medicina</th>
-      <th>Total</th><th>Transferido</th><th>Forma</th><th>Fecha</th>
-    </tr>
+      <tr>
+        <th>ID</th><th>Cita</th><th>Copago</th><th>Medicina</th><th>Total</th><th>Transferido</th><th>Forma</th><th>Fecha</th>
+      </tr>
     </thead>
     <tbody></tbody>
   </table>
 </div>
 
-<!-- JS común (si falla, tenemos fallback abajo) -->
-<script src="/app/assets/js/common.js"></script>
-
 <script>
-/** ===========================================================
- *  Fallbacks mínimos por si common.js no está/ no define
- *  =========================================================== */
-if (typeof window.api !== 'function') {
-  window.api = async function (url, options = {}) {
-    const res = await fetch(url, {
-      headers: { 'Content-Type': 'application/json', ...(options.headers||{}) },
-      ...options
-    });
-    const ct = res.headers.get('Content-Type') || '';
-    const body = ct.includes('application/json') ? await res.json() : await res.text();
-    if (!res.ok) throw Object.assign(new Error('HTTP ' + res.status), { status: res.status, body });
-    return body;
-  };
-}
-if (typeof window.setAlert !== 'function') {
-  window.setAlert = function(el, text, isError=false) {
-    if (!el) return;
-    el.textContent = text || '';
-    el.style.display = text ? 'block' : 'none';
-    el.classList.toggle('error', !!isError);
-  };
+async function api(u,o={}){ const r=await fetch(u,{headers:{'Content-Type':'application/json'},...o}); const ct=r.headers.get('Content-Type')||''; const b=ct.includes('json')?await r.json():await r.text(); if(!r.ok) throw Object.assign(new Error('HTTP '+r.status),{status:r.status,body:b}); return b;}
+function setMsg(t,err){ const el=document.getElementById('msg'); el.textContent=t||''; el.style.display=t?'block':'none'; el.classList.toggle('error',!!err); }
+const selCita=document.getElementById('selCita'); const btnVerPago=document.getElementById('btnVerPago');
+const copagoEl=bI('copago'), medicinaEl=bI('medicina'), totalEl=bI('total'), transfEl=bI('transferido'), formaEl=bI('forma'), fechaEl=bI('fechaPago'), obsEl=bI('obs'), pagoIdEl=bI('pagoId'), tbody=document.querySelector('#tblPagos tbody');
+function bI(id){ return document.getElementById(id); }
+function setTotal(){ totalEl.value=(Number(copagoEl.value||0)+Number(medicinaEl.value||0)).toFixed(2); }
+copagoEl.addEventListener('input',setTotal); medicinaEl.addEventListener('input',setTotal);
+
+async function cargarCitasPorPacienteId(pid){
+  const r=await api('/api/cita?paciente_id='+pid);
+  const L=r?.data??[];
+  selCita.innerHTML = L.length
+    ? '<option value="">— Selecciona —</option>' + L.map(c=>`<option value="${c.id}">#${c.id} · ${c.fecha}${c.hora?' '+c.hora:''} · ${c.estado}</option>`).join('')
+    : '<option value="">(Sin citas)</option>';
+  selCita.disabled = L.length===0; btnVerPago.disabled = selCita.disabled;
 }
 
-/** ===========================================================
- *  Elementos
- *  =========================================================== */
-const msg = document.querySelector('#msg');
-const selPaciente = document.querySelector('#selPaciente');
-const fFecha = document.querySelector('#fFecha');
-const btnBuscarCitas = document.querySelector('#btnBuscarCitas');
-const selCita = document.querySelector('#selCita');
-const btnVerPago = document.querySelector('#btnVerPago');
-const copagoEl = document.querySelector('#copago');
-const medicinaEl = document.querySelector('#medicina');
-const totalEl = document.querySelector('#total');
-const transferidoEl = document.querySelector('#transferido');
-const formaEl = document.querySelector('#forma');
-const fechaPagoEl = document.querySelector('#fechaPago');
-const obsEl = document.querySelector('#obs');
-const btnGuardar = document.querySelector('#btnGuardar');
-const btnBorrar = document.querySelector('#btnBorrar');
-const pagoIdEl = document.querySelector('#pagoId');
-const tbody = document.querySelector('#tblPagos tbody');
+document.getElementById('btnBuscarCI').onclick = async ()=>{
+  try{
+    const ci=(document.getElementById('b-ci').value||'').trim(); if(!ci) return setMsg('Ingresa CI',true);
+    const r=await api('/api/paciente?ci='+encodeURIComponent(ci));
+    if(!r?.data?.id) return setMsg('Paciente no encontrado',true);
+    await cargarCitasPorPacienteId(r.data.id);
+    setMsg('Citas del paciente cargadas');
+  }catch(e){ setMsg(e?.body?.error||'Error al buscar por CI',true); }
+};
 
-/** ===========================================================
- *  Helpers de monto/total
- *  =========================================================== */
-function setTotal() {
-  const c = Number(copagoEl.value || 0);
-  const m = Number(medicinaEl.value || 0);
-  totalEl.value = (c + m).toFixed(2);
-}
-copagoEl.addEventListener('input', setTotal);
-medicinaEl.addEventListener('input', setTotal);
+document.getElementById('btnBuscarCita').onclick = async ()=>{
+  try{
+    const id=Number((document.getElementById('b-cita').value||'').trim()); if(!id) return setMsg('Ingresa ID de cita',true);
+    selCita.innerHTML = `<option value="${id}">#${id}</option>`;
+    selCita.disabled = false; btnVerPago.disabled = false; selCita.value=String(id);
+    setMsg('Cita seleccionada');
+  }catch(e){ setMsg('Error al seleccionar cita',true); }
+};
 
-/** ===========================================================
- *  Cargar pacientes
- *  (usa /api/paciente → { ok:true, data:[...] })
- *  =========================================================== */
-async function cargarPacientes() {
-  try {
-    const payload = await api('/api/paciente');
-    const data = Array.isArray(payload?.data) ? payload.data : [];
-    data.sort((a,b) => (a.apellido + a.nombre).localeCompare(b.apellido + b.nombre, 'es'));
-    selPaciente.innerHTML =
-      '<option value="">— Selecciona un paciente —</option>' +
-      data.map(p => `<option value="${p.id}">${p.apellido.toUpperCase()}, ${p.nombre} (CI: ${p.ci})</option>`).join('');
-  } catch (e) {
-    console.error(e);
-    selPaciente.innerHTML = '<option value="">(Error cargando pacientes)</option>';
-    setAlert(msg, 'No se pudieron cargar los pacientes', true);
-  }
-}
-
-/** ===========================================================
- *  Buscar citas por paciente/fecha
- *  (usa /api/cita?paciente_id=&fecha=)
- *  =========================================================== */
-async function buscarCitas() {
-  try {
-    const pid = Number(selPaciente.value);
-    const fe = (fFecha.value || '').trim();
-
-    if (!pid) {
-      selCita.innerHTML = '<option value="">— Selecciona un paciente —</option>';
-      selCita.disabled = true;
-      btnVerPago.disabled = true;
-      return setAlert(msg, 'Selecciona un paciente', true);
+btnVerPago.onclick = async ()=>{
+  try{
+    const id=Number(selCita.value); if(!id) return setMsg('Selecciona cita',true);
+    const r=await api('/api/pago?cita_id='+id);
+    const p = (r?.data||[])[0];
+    if(!p){
+      pagoIdEl.value=''; copagoEl.value='0'; medicinaEl.value='0'; transfEl.value='0'; formaEl.value=''; fechaEl.value=''; obsEl.value=''; setTotal(); btnBorrar.style.display='none';
+      return setMsg('Sin pago. Puedes crearlo.');
     }
+    pagoIdEl.value=p.id; copagoEl.value=Number(p.copago||0); medicinaEl.value=Number(p.medicina||0); transfEl.value=Number(p.valor_transferido||0);
+    formaEl.value=p.forma_pago||''; fechaEl.value=(p.fecha_pago||'').substring(0,10); obsEl.value=p.observaciones||''; setTotal(); btnBorrar.style.display='inline-block'; setMsg(`Pago #${p.id} cargado`);
+  }catch(e){ setMsg(e?.body?.error||'Error al consultar pago',true); }
+};
 
-    const qs = new URLSearchParams();
-    qs.set('paciente_id', pid);
-    if (fe) qs.set('fecha', fe);
+document.getElementById('btnGuardar').onclick = async ()=>{
+  try{
+    const id=Number(selCita.value); if(!id) return setMsg('Selecciona cita',true);
+    const body={ cita_id:id, copago:Number(copagoEl.value||0), medicina:Number(medicinaEl.value||0), valor_transferido:Number(transfEl.value||0), forma_pago:(formaEl.value||'').trim(), fecha_pago:(fechaEl.value||'').trim()||null, observaciones:(obsEl.value||'').trim()||null };
+    await api('/api/pago',{method:'POST',body:JSON.stringify(body)});
+    await btnVerPago.onclick(); await cargarPagosRecientes(); setMsg('Pago guardado');
+  }catch(e){ setMsg(e?.body?.error||'Error al guardar pago',true); }
+};
 
-    const { data } = await api(`/api/cita?${qs.toString()}`);
+document.getElementById('btnBorrar').onclick = async ()=>{
+  try{
+    const id=Number(pagoIdEl.value); if(!id) return setMsg('No hay pago para borrar',true);
+    await api('/api/pago/'+id,{method:'DELETE'});
+    btnVerPago.onclick(); await cargarPagosRecientes(); setMsg('Pago eliminado');
+  }catch(e){ setMsg(e?.body?.error||'Error al borrar pago',true); }
+};
 
-    if (!Array.isArray(data) || data.length === 0) {
-      selCita.innerHTML = '<option value="">(Sin citas)</option>';
-      selCita.disabled = true;
-      btnVerPago.disabled = true;
-      return setAlert(msg, 'Este paciente no tiene citas (o no en esa fecha).');
-    }
-
-    selCita.innerHTML =
-      '<option value="">— Selecciona una cita —</option>' +
-      data.map(c => `<option value="${c.id}">#${c.id} · ${c.fecha} ${c.hora || ''} · estado: ${c.estado}</option>`).join('');
-
-    selCita.disabled = false;
-    btnVerPago.disabled = false;
-
-    // limpiar pago actual
-    limpiarFormularioPago();
-    await cargarPagosRecientes(); // refrescar tabla
-  } catch (e) {
-    console.error(e);
-    setAlert(msg, 'Error al buscar citas', true);
-  }
-}
-
-/** ===========================================================
- *  Ver pago de la cita seleccionada (si existe)
- *  GET /api/pago?cita_id=#
- *  =========================================================== */
-async function verPago() {
-  try {
-    const citaId = Number(selCita.value);
-    if (!citaId) {
-      return setAlert(msg, 'Selecciona una cita', true);
-    }
-    const { data } = await api(`/api/pago?cita_id=${citaId}`);
-    if (!Array.isArray(data) || data.length === 0) {
-      // no hay pago → modo crear
-      pagoIdEl.value = '';
-      copagoEl.value = '0';
-      medicinaEl.value = '0';
-      transferidoEl.value = '0';
-      formaEl.value = '';
-      fechaPagoEl.value = '';
-      obsEl.value = '';
-      setTotal();
-      btnBorrar.style.display = 'none';
-      return setAlert(msg, 'No existe pago para esta cita. Puedes crearlo.');
-    }
-    // tomar el primero (tu backend asegura 1 pago por cita)
-    const p = data[0];
-    pagoIdEl.value = p.id;
-    copagoEl.value = Number(p.copago || 0);
-    medicinaEl.value = Number(p.medicina || 0);
-    transferidoEl.value = Number(p.valor_transferido || 0);
-    formaEl.value = p.forma_pago || '';
-    fechaPagoEl.value = (p.fecha_pago || '').substring(0,10); // yyyy-mm-dd
-    obsEl.value = p.observaciones || '';
-    setTotal();
-    btnBorrar.style.display = 'inline-block';
-    setAlert(msg, `Pago #${p.id} cargado`);
-  } catch (e) {
-    console.error(e);
-    setAlert(msg, 'Error al consultar el pago', true);
-  }
-}
-
-/** ===========================================================
- *  Guardar pago (CREAR o RE-guardar)
- *  POST /api/pago  (tu backend hace UPSERT por UNIQUE cita_id)
- *  Body esperado: cita_id, copago, medicina, valor_transferido, forma_pago, fecha_pago, observaciones
- *  =========================================================== */
-async function guardarPago() {
-  try {
-    const citaId = Number(selCita.value);
-    if (!citaId) return setAlert(msg, 'Selecciona una cita', true);
-
-    // Validaciones básicas
-    const copago = Number(copagoEl.value || 0);
-    const medicina = Number(medicinaEl.value || 0);
-    const valor_transferido = Number(transferidoEl.value || 0);
-    if (copago < 0 || medicina < 0 || valor_transferido < 0)
-      return setAlert(msg, 'Montos no pueden ser negativos', true);
-
-    const forma_pago = (formaEl.value || '').trim();
-    if (forma_pago && !['efectivo','transferencia'].includes(forma_pago))
-      return setAlert(msg, 'Forma de pago inválida', true);
-
-    const fecha_pago = (fechaPagoEl.value || '').trim() || null;
-    const observaciones = (obsEl.value || '').trim() || null;
-
-    const body = {
-      cita_id: citaId,
-      copago,
-      medicina,
-      valor_transferido,
-      forma_pago,
-      fecha_pago,
-      observaciones
-    };
-
-    // POST crea o actualiza por conflicto UNIQUE (cita_id) según tu backend
-    const res = await api('/api/pago', {
-      method: 'POST',
-      body: JSON.stringify(body)
-    });
-
-    // Si tu endpoint devuelve { ok:true, id }, refrescamos estado
-    await verPago();
-    await cargarPagosRecientes();
-    setAlert(msg, 'Pago guardado correctamente');
-  } catch (e) {
-    console.error(e);
-    const text = e?.body?.error || e.message || 'Error al guardar pago';
-    setAlert(msg, text, true);
-  }
-}
-
-/** ===========================================================
- *  Borrar pago actual
- *  DELETE /api/pago/:id
- *  =========================================================== */
-async function borrarPago() {
-  try {
-    const id = Number(pagoIdEl.value);
-    if (!id) return setAlert(msg, 'No hay pago para borrar', true);
-
-    await api(`/api/pago/${id}`, { method: 'DELETE' });
-
-    limpiarFormularioPago();
-    await cargarPagosRecientes();
-    setAlert(msg, `Pago #${id} eliminado`);
-  } catch (e) {
-    console.error(e);
-    const text = e?.body?.error || e.message || 'Error al borrar pago';
-    setAlert(msg, text, true);
-  }
-}
-
-/** ===========================================================
- *  Tabla de pagos recientes
- *  GET /api/pago (sin filtros) → { ok:true, data:[...] }
- *  =========================================================== */
-async function cargarPagosRecientes() {
-  try {
-    const { data } = await api('/api/pago');
-    const rows = (Array.isArray(data) ? data : []).slice(0, 20); // top 20
-    tbody.innerHTML = rows.map(p => `
+async function cargarPagosRecientes(){
+  try{
+    const r=await api('/api/pago'); const L=r?.data??[];
+    tbody.innerHTML = L.slice(0,20).map(p=>`
       <tr>
-        <td>${p.id}</td>
-        <td>#${p.cita_id}</td>
+        <td>${p.id}</td><td>#${p.cita_id}</td>
         <td>${Number(p.copago||0).toFixed(2)}</td>
         <td>${Number(p.medicina||0).toFixed(2)}</td>
         <td>${Number(p.total_recibido||0).toFixed(2)}</td>
         <td>${Number(p.valor_transferido||0).toFixed(2)}</td>
-        <td>${p.forma_pago || ''}</td>
-        <td>${p.fecha_pago || ''}</td>
-      </tr>
-    `).join('');
-  } catch (e) {
-    console.error(e);
-    // no rompemos UI si falla
-  }
+        <td>${p.forma_pago||''}</td><td>${p.fecha_pago||''}</td>
+      </tr>`).join('');
+  }catch{}
 }
-
-/** ===========================================================
- *  Utilitarios
- *  =========================================================== */
-function limpiarFormularioPago() {
-  pagoIdEl.value = '';
-  copagoEl.value = '0';
-  medicinaEl.value = '0';
-  totalEl.value = '0';
-  transferidoEl.value = '0';
-  formaEl.value = '';
-  fechaPagoEl.value = '';
-  obsEl.value = '';
-  btnBorrar.style.display = 'none';
-}
-
-/** ===========================================================
- *  Eventos
- *  =========================================================== */
-btnBuscarCitas.addEventListener('click', buscarCitas);
-btnVerPago.addEventListener('click', verPago);
-btnGuardar.addEventListener('click', guardarPago);
-btnBorrar.addEventListener('click', borrarPago);
-
-document.addEventListener('DOMContentLoaded', async () => {
-  await cargarPacientes();
-  await cargarPagosRecientes();
-});
+document.addEventListener('DOMContentLoaded', cargarPagosRecientes);
 </script>
-
 </body>
 </html>
