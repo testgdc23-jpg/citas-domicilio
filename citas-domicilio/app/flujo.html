@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Flujo Operativo — Call Center</title>
+  <link rel="stylesheet" href="/app/assets/css/styles.css"/>
+  <style>
+    fieldset{border:1px solid #223257;border-radius:10px;padding:12px;margin-bottom:14px}
+    legend{padding:0 8px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .row>*{min-width:220px;flex:1}
+    .hide{display:none}
+    .muted{opacity:.85}
+  </style>
+</head>
+<body class="app">
+<div class="container">
+  <h1>Flujo Operativo — Call Center</h1>
+  <p><a class="pill" href="/">← Inicio</a></p>
+  <div id="msg" class="alert"></div>
+
+  <!-- 1) PACIENTE -->
+  <fieldset>
+    <legend>1) Paciente</legend>
+    <div class="row">
+      <label>CI <input id="p-ci" placeholder="10 dígitos"/></label>
+      <label>Nombres <input id="p-nom" placeholder="Nombres"/></label>
+      <label>Apellidos <input id="p-ape" placeholder="Apellidos"/></label>
+      <label>Teléfono <input id="p-tel" placeholder="+593..."/></label>
+    </div>
+    <div class="row">
+      <label>Escuela (opcional)
+        <select id="p-escuela">
+          <option value="">— Ninguna —</option>
+        </select>
+      </label>
+    </div>
+    <div class="row">
+      <button id="btnBuscarPaciente" class="secondary" type="button">Buscar por CI</button>
+      <button id="btnGuardarPaciente" type="button">Guardar/Actualizar</button>
+    </div>
+  </fieldset>
+
+  <!-- 2) DIRECCIÓN -->
+  <fieldset>
+    <legend>2) Dirección</legend>
+    <div class="row">
+      <label>Ciudad <input id="d-ciudad"/></label>
+      <label>Dirección <input id="d-dir" placeholder="Calle, #, etc."/></label>
+      <label>Zona
+        <select id="d-zona">
+          <option value="">(no especifica)</option>
+          <option value="Urbano">Urbano</option>
+          <option value="Rural">Rural</option>
+          <option value="Exurbano">Exurbano</option>
+        </select>
+      </label>
+      <label>Referencia <input id="d-ref"/></label>
+      <label>Sector <input id="d-sector"/></label>
+    </div>
+    <div class="row">
+      <button id="btnGuardarDireccion" type="button">Guardar Dirección</button>
+    </div>
+    <p class="muted">Se guardará como la dirección más reciente del paciente.</p>
+  </fieldset>
+
+  <!-- 3) CITA -->
+  <fieldset>
+    <legend>3) Cita</legend>
+    <div class="row">
+      <label>Paciente
+        <select id="c-paciente"><option value="">— Selecciona —</option></select>
+      </label>
+      <label>Seguro
+        <select id="c-seguro"><option value="">— Selecciona —</option></select>
+      </label>
+      <label>Fecha <input id="c-fecha" type="date"/></label>
+      <label>Hora <input id="c-hora" type="time"/></label>
+    </div>
+    <div class="row">
+      <label style="flex:2;">Síntomas <input id="c-sint"/></label>
+    </div>
+    <div id="mawdyBox" class="row hide">
+      <label>Asistencia <input id="c-asis" inputmode="numeric" maxlength="9" placeholder="9 dígitos"/></label>
+      <label>Movimiento <input id="c-mov" inputmode="numeric" maxlength="6" placeholder="6 dígitos"/></label>
+    </div>
+    <div class="row">
+      <button id="btnAgendar" type="button">Agendar Cita</button>
+      <button id="btnOrden" class="secondary" type="button" disabled>Ver/Imprimir Orden</button>
+    </div>
+    <input type="hidden" id="c-id" value=""/>
+  </fieldset>
+</div>
+
+<script>
+async function api(url,opt={}){ const r=await fetch(url,{headers:{'Content-Type':'application/json'},...opt}); const ct=r.headers.get('Content-Type')||''; const b=ct.includes('json')?await r.json():await r.text(); if(!r.ok) throw Object.assign(new Error('HTTP '+r.status),{status:r.status,body:b}); return b;}
+function setAlert(t,err){ const el=document.getElementById('msg'); el.textContent=t||''; el.style.display=t?'block':'none'; el.classList.toggle('error',!!err); }
+function val(v){ return (v??'').toString().trim(); }
+const selPac=document.getElementById('c-paciente'), selSeg=document.getElementById('c-seguro'), selEsc=document.getElementById('p-escuela');
+const mawdyBox=document.getElementById('mawdyBox'); function isMAWDY(){ const o=selSeg.options[selSeg.selectedIndex]; return o && o.textContent.trim().toUpperCase()==='MAWDY'; }
+selSeg.addEventListener('change',()=>{ if(isMAWDY()) mawdyBox.classList.remove('hide'); else { mawdyBox.classList.add('hide'); document.getElementById('c-asis').value=''; document.getElementById('c-mov').value=''; }});
+
+async function loadPacientes(){ const p=await api('/api/paciente'); const L=p?.data??[]; selPac.innerHTML='<option value="">— Selecciona —</option>'+ L.map(x=>`<option value="${x.id}">${(x.apellido||'').toUpperCase()}, ${x.nombre} (CI:${x.ci})</option>`).join(''); }
+async function loadSeguros(){ const p=await api('/api/seguro'); const L=p?.data??[]; const orden=['KLS','MAWDY','KLS LABORATORIO','PLAN VITAL','PROASSISLIFE']; const S=[...L].sort((a,b)=>orden.indexOf(a.Nombre)-orden.indexOf(b.Nombre)); selSeg.innerHTML='<option value="">— Selecciona —</option>'+ S.map(s=>`<option value="${s.id}">${s.Nombre}</option>`).join(''); }
+async function loadEscuelas(){ const p=await api('/api/escuela'); const L=p?.data??[]; selEsc.innerHTML='<option value="">— Ninguna —</option>'+ L.map(e=>`<option value="${e.id}">${e.Direccion || ('Escuela #'+e.id)} — ${e.Sector||''}</option>`).join(''); }
+
+document.addEventListener('DOMContentLoaded', async ()=>{ try{ await loadPacientes(); await loadSeguros(); await loadEscuelas(); setAlert('Listo para operar'); }catch(e){ setAlert('Error de inicio',true); }});
+
+document.getElementById('btnBuscarPaciente').onclick = async ()=>{
+  try{
+    const ci=val(document.getElementById('p-ci').value); if(!ci) return setAlert('Ingresa CI',true);
+    const r=await api('/api/paciente?ci='+encodeURIComponent(ci));
+    if(r?.data){ document.getElementById('p-nom').value=r.data.nombre||''; document.getElementById('p-ape').value=r.data.apellido||''; document.getElementById('p-tel').value=r.data.telefono||''; if(r.data.escuela_id) selEsc.value=String(r.data.escuela_id); setAlert('Paciente encontrado'); } else setAlert('No existe paciente, puedes crearlo.');
+  }catch(e){ setAlert(e?.body?.error||'Error al buscar',true); }
+};
+
+document.getElementById('btnGuardarPaciente').onclick = async ()=>{
+  try{
+    const ci=val(document.getElementById('p-ci').value), nombre=val(document.getElementById('p-nom').value), apellido=val(document.getElementById('p-ape').value), telefono=val(document.getElementById('p-tel').value);
+    const escuela_id = val(selEsc.value) ? Number(selEsc.value) : null;
+    if(!ci||!nombre||!apellido) return setAlert('CI, Nombres y Apellidos son obligatorios',true);
+    await api('/api/paciente',{ method:'POST', body: JSON.stringify({ ci, nombre, apellido, telefono, escuela_id })});
+    await loadPacientes();
+    setAlert('Paciente guardado/actualizado');
+  }catch(e){ setAlert(e?.body?.error||'Error al guardar paciente',true); }
+};
+
+document.getElementById('btnGuardarDireccion').onclick = async ()=>{
+  try{
+    const pid=Number(val(selPac.value)); if(!pid) return setAlert('Selecciona primero el paciente en la sección Cita',true);
+    const body={ paciente_id:pid, ciudad:val(document.getElementById('d-ciudad').value), direccion:val(document.getElementById('d-dir').value), zona:val(document.getElementById('d-zona').value), referencia:val(document.getElementById('d-ref').value), sector:val(document.getElementById('d-sector').value) };
+    await api('/api/direccion',{ method:'POST', body: JSON.stringify(body) });
+    setAlert('Dirección guardada');
+  }catch(e){ setAlert(e?.body?.error||'Error al guardar dirección',true); }
+};
+
+document.getElementById('btnAgendar').onclick = async ()=>{
+  try{
+    const paciente_id=Number(val(selPac.value)), seguro_id=Number(val(selSeg.value)), fecha=val(document.getElementById('c-fecha').value), hora=val(document.getElementById('c-hora').value), sintomas=val(document.getElementById('c-sint').value);
+    if(!paciente_id||!seguro_id||!fecha) return setAlert('Paciente, Seguro y Fecha son obligatorios',true);
+    const body={ paciente_id, seguro_id, fecha, hora, sintomas };
+    if(isMAWDY()){ const as=val(document.getElementById('c-asis').value), mv=val(document.getElementById('c-mov').value); if(as) body.asistencia=as.replace(/\D/g,''); if(mv) body.movimiento=mv.replace(/\D/g,''); }
+    const r=await api('/api/cita',{ method:'POST', body: JSON.stringify(body) });
+    document.getElementById('c-id').value=r?.id||''; document.getElementById('btnOrden').disabled=!r?.id;
+    setAlert(`Cita creada #${r?.id||''}`);
+  }catch(e){ setAlert(e?.body?.error||'Error al agendar',true); }
+};
+
+document.getElementById('btnOrden').onclick = ()=>{ const id=val(document.getElementById('c-id').value); if(id) window.open(`/app/orden.html?cita_id=${encodeURIComponent(id)}`,'_blank'); };
+</script>
+</body>
+</html>
