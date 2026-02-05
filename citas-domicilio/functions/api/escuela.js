@@ -1,7 +1,18 @@
 // GET /api/escuela -> [{ id, Direccion, Sector }]
 export const onRequestGet = async ({ env }) => {
-  const { results } = await env.DB
-    .prepare(`SELECT id, Direccion, Sector FROM escuela ORDER BY id`)
-    .all();
+  try {
+    const { results } = await env.DB
+      .prepare(`SELECT id, Direccion, Sector FROM escuela ORDER BY id`)
+      .all();
 
-  return new
+    return new Response(JSON.stringify({ ok: true, data: results || [] }), {
+      headers: { "Content-Type": "application/json" },
+      status: 200
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ ok: false, error: String(err) }), {
+      headers: { "Content-Type": "application/json" },
+      status: 500
+    });
+  }
+};
