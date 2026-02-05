@@ -12,12 +12,13 @@
     .row>*{min-width:220px;flex:1}
     .hide{display:none}
     .muted{opacity:.85}
+    .btns{display:flex;gap:10px;flex-wrap:wrap}
   </style>
 </head>
 <body class="app">
 <div class="container">
   <h1>Flujo Operativo — Call Center</h1>
-  <p><a class="pill" href="/">← Inicio</a></p>
+  <p><a class="pill" href="/app/index.html">← Menú</a></p>
   <div id="msg" class="alert"></div>
 
   <!-- 1) PACIENTE -->
@@ -36,9 +37,8 @@
         </select>
       </label>
     </div>
-    <div class="row">
-      <button id="btnBuscarPaciente" class="secondary" type="button">Buscar por CI</button>
-      <button id="btnGuardarPaciente" type="button">Guardar/Actualizar</button>
+    <div class="btns">
+      <button id="btnBuscarCI" class="secondary" type="button">Buscar por CI</button>
     </div>
   </fieldset>
 
@@ -59,10 +59,6 @@
       <label>Referencia <input id="d-ref"/></label>
       <label>Sector <input id="d-sector"/></label>
     </div>
-    <div class="row">
-      <button id="btnGuardarDireccion" type="button">Guardar Dirección</button>
-    </div>
-    <p class="muted">Se guardará como la dirección más reciente del paciente.</p>
   </fieldset>
 
   <!-- 3) CITA -->
@@ -85,69 +81,88 @@
       <label>Asistencia <input id="c-asis" inputmode="numeric" maxlength="9" placeholder="9 dígitos"/></label>
       <label>Movimiento <input id="c-mov" inputmode="numeric" maxlength="6" placeholder="6 dígitos"/></label>
     </div>
-    <div class="row">
-      <button id="btnAgendar" type="button">Agendar Cita</button>
+
+    <div class="btns">
+      <button id="btnGuardar" type="button">Guardar (Paciente + Dirección + Cita)</button>
       <button id="btnOrden" class="secondary" type="button" disabled>Ver/Imprimir Orden</button>
     </div>
+
     <input type="hidden" id="c-id" value=""/>
   </fieldset>
 </div>
 
 <script>
 async function api(url,opt={}){ const r=await fetch(url,{headers:{'Content-Type':'application/json'},...opt}); const ct=r.headers.get('Content-Type')||''; const b=ct.includes('json')?await r.json():await r.text(); if(!r.ok) throw Object.assign(new Error('HTTP '+r.status),{status:r.status,body:b}); return b;}
-function setAlert(t,err){ const el=document.getElementById('msg'); el.textContent=t||''; el.style.display=t?'block':'none'; el.classList.toggle('error',!!err); }
-function val(v){ return (v??'').toString().trim(); }
-const selPac=document.getElementById('c-paciente'), selSeg=document.getElementById('c-seguro'), selEsc=document.getElementById('p-escuela');
-const mawdyBox=document.getElementById('mawdyBox'); function isMAWDY(){ const o=selSeg.options[selSeg.selectedIndex]; return o && o.textContent.trim().toUpperCase()==='MAWDY'; }
+function setMsg(txt,err){ const el=document.getElementById('msg'); el.textContent=txt||''; el.style.display=txt?'block':'none'; el.classList.toggle('error',!!err); }
+function v(elId){ return (document.getElementById(elId).value||'').trim(); }
+const selEsc=document.getElementById('p-escuela'), selPac=document.getElementById('c-paciente'), selSeg=document.getElementById('c-seguro'), mawdyBox=document.getElementById('mawdyBox');
+function isMAWDY(){ const o=selSeg.options[selSeg.selectedIndex]; return o&&o.textContent.trim().toUpperCase()==='MAWDY'; }
 selSeg.addEventListener('change',()=>{ if(isMAWDY()) mawdyBox.classList.remove('hide'); else { mawdyBox.classList.add('hide'); document.getElementById('c-asis').value=''; document.getElementById('c-mov').value=''; }});
 
-async function loadPacientes(){ const p=await api('/api/paciente'); const L=p?.data??[]; selPac.innerHTML='<option value="">— Selecciona —</option>'+ L.map(x=>`<option value="${x.id}">${(x.apellido||'').toUpperCase()}, ${x.nombre} (CI:${x.ci})</option>`).join(''); }
-async function loadSeguros(){ const p=await api('/api/seguro'); const L=p?.data??[]; const orden=['KLS','MAWDY','KLS LABORATORIO','PLAN VITAL','PROASSISLIFE']; const S=[...L].sort((a,b)=>orden.indexOf(a.Nombre)-orden.indexOf(b.Nombre)); selSeg.innerHTML='<option value="">— Selecciona —</option>'+ S.map(s=>`<option value="${s.id}">${s.Nombre}</option>`).join(''); }
-async function loadEscuelas(){ const p=await api('/api/escuela'); const L=p?.data??[]; selEsc.innerHTML='<option value="">— Ninguna —</option>'+ L.map(e=>`<option value="${e.id}">${e.Direccion || ('Escuela #'+e.id)} — ${e.Sector||''}</option>`).join(''); }
+async function loadEscuelas(){ try{ const p=await api('/api/escuela'); const L=p?.data??[]; selEsc.innerHTML='<option value="">— Ninguna —</option>'+L.map(e=>`<option value="${e.id}">${e.Direccion||('Escuela #'+e.id)} — ${e.Sector||''}</option>`).join(''); }catch{} }
+async function loadPacientes(){ const p=await api('/api/paciente'); const L=p?.data??[]; selPac.innerHTML='<option value="">— Selecciona —</option>'+L.map(x=>`<option value="${x.id}">${(x.apellido||'').toUpperCase()}, ${x.nombre} (CI:${x.ci})</option>`).join(''); }
+async function loadSeguros(){ const p=await api('/api/seguro'); const L=p?.data??[]; const orden=['KLS','MAWDY','KLS LABORATORIO','PLAN VITAL','PROASSISLIFE']; const S=[...L].sort((a,b)=>orden.indexOf(a.Nombre)-orden.indexOf(b.Nombre)); selSeg.innerHTML='<option value="">— Selecciona —</option>'+S.map(s=>`<option value="${s.id}">${s.Nombre}</option>`).join(''); }
 
-document.addEventListener('DOMContentLoaded', async ()=>{ try{ await loadPacientes(); await loadSeguros(); await loadEscuelas(); setAlert('Listo para operar'); }catch(e){ setAlert('Error de inicio',true); }});
+document.addEventListener('DOMContentLoaded', async()=>{ await loadEscuelas(); await loadPacientes(); await loadSeguros(); setMsg('Listo para operar'); });
 
-document.getElementById('btnBuscarPaciente').onclick = async ()=>{
+document.getElementById('btnBuscarCI').onclick = async ()=>{
   try{
-    const ci=val(document.getElementById('p-ci').value); if(!ci) return setAlert('Ingresa CI',true);
+    const ci=v('p-ci'); if(!ci) return setMsg('Ingresa CI',true);
     const r=await api('/api/paciente?ci='+encodeURIComponent(ci));
-    if(r?.data){ document.getElementById('p-nom').value=r.data.nombre||''; document.getElementById('p-ape').value=r.data.apellido||''; document.getElementById('p-tel').value=r.data.telefono||''; if(r.data.escuela_id) selEsc.value=String(r.data.escuela_id); setAlert('Paciente encontrado'); } else setAlert('No existe paciente, puedes crearlo.');
-  }catch(e){ setAlert(e?.body?.error||'Error al buscar',true); }
+    if(r?.data){ document.getElementById('p-nom').value=r.data.nombre||''; document.getElementById('p-ape').value=r.data.apellido||''; document.getElementById('p-tel').value=r.data.telefono||''; if(r.data.escuela_id) selEsc.value=String(r.data.escuela_id); setMsg('Paciente encontrado'); }
+    else setMsg('No existe paciente, completa los datos y guarda.');
+  }catch(e){ setMsg(e?.body?.error||'Error al buscar CI',true); }
 };
 
-document.getElementById('btnGuardarPaciente').onclick = async ()=>{
+document.getElementById('btnGuardar').onclick = async ()=>{
   try{
-    const ci=val(document.getElementById('p-ci').value), nombre=val(document.getElementById('p-nom').value), apellido=val(document.getElementById('p-ape').value), telefono=val(document.getElementById('p-tel').value);
-    const escuela_id = val(selEsc.value) ? Number(selEsc.value) : null;
-    if(!ci||!nombre||!apellido) return setAlert('CI, Nombres y Apellidos son obligatorios',true);
-    await api('/api/paciente',{ method:'POST', body: JSON.stringify({ ci, nombre, apellido, telefono, escuela_id })});
+    // 1) PACIENTE (crear/actualizar por CI)
+    const ci=v('p-ci'), nombre=v('p-nom'), apellido=v('p-ape'), telefono=v('p-tel');
+    const escuela_id = v('p-escuela') ? Number(v('p-escuela')) : null;
+    if(!ci||!nombre||!apellido) return setMsg('CI, Nombres y Apellidos son obligatorios',true);
+    await api('/api/paciente',{ method:'POST', body: JSON.stringify({ ci, nombre, apellido, telefono, escuela_id }) });
+
+    // refrescar lista y seleccionar al paciente recién guardado
     await loadPacientes();
-    setAlert('Paciente guardado/actualizado');
-  }catch(e){ setAlert(e?.body?.error||'Error al guardar paciente',true); }
+    // encontrar id por CI:
+    const r=await api('/api/paciente?ci='+encodeURIComponent(ci));
+    const paciente_id = r?.data?.id;
+    if(!paciente_id) return setMsg('No se pudo resolver el ID del paciente',true);
+    selPac.value = String(paciente_id);
+
+    // 2) DIRECCIÓN
+    const dirBody = {
+      paciente_id,
+      ciudad: v('d-ciudad'),
+      direccion: v('d-dir'),
+      zona: v('d-zona'),
+      referencia: v('d-ref'),
+      sector: v('d-sector')
+    };
+    await api('/api/direccion',{ method:'POST', body: JSON.stringify(dirBody) });
+
+    // 3) CITA con Seguro
+    const seguro_id = Number(v('c-seguro'));
+    const fecha = v('c-fecha');
+    const hora  = v('c-hora');
+    const sintomas = v('c-sint');
+    if(!seguro_id||!fecha) return setMsg('Seguro y Fecha son obligatorios',true);
+
+    const citaBody = { paciente_id, seguro_id, fecha, hora, sintomas };
+    if(isMAWDY()){ const as=v('c-asis'), mv=v('c-mov'); if(as) citaBody.asistencia = as.replace(/\D/g,''); if(mv) citaBody.movimiento = mv.replace(/\D/g,''); }
+
+    const cread = await api('/api/cita',{ method:'POST', body: JSON.stringify(citaBody) });
+    document.getElementById('c-id').value = cread?.id || '';
+    document.getElementById('btnOrden').disabled = !cread?.id;
+
+    setMsg(`Guardado ok. Cita #${cread?.id||''}. Puedes ver/imprimir la orden.`);
+  }catch(e){ setMsg(e?.body?.error||'Error al guardar',true); }
 };
 
-document.getElementById('btnGuardarDireccion').onclick = async ()=>{
-  try{
-    const pid=Number(val(selPac.value)); if(!pid) return setAlert('Selecciona primero el paciente en la sección Cita',true);
-    const body={ paciente_id:pid, ciudad:val(document.getElementById('d-ciudad').value), direccion:val(document.getElementById('d-dir').value), zona:val(document.getElementById('d-zona').value), referencia:val(document.getElementById('d-ref').value), sector:val(document.getElementById('d-sector').value) };
-    await api('/api/direccion',{ method:'POST', body: JSON.stringify(body) });
-    setAlert('Dirección guardada');
-  }catch(e){ setAlert(e?.body?.error||'Error al guardar dirección',true); }
+document.getElementById('btnOrden').onclick = ()=>{
+  const id = (document.getElementById('c-id').value||'').trim();
+  if(id) window.open(`/app/orden.html?cita_id=${encodeURIComponent(id)}`,'_blank');
 };
-
-document.getElementById('btnAgendar').onclick = async ()=>{
-  try{
-    const paciente_id=Number(val(selPac.value)), seguro_id=Number(val(selSeg.value)), fecha=val(document.getElementById('c-fecha').value), hora=val(document.getElementById('c-hora').value), sintomas=val(document.getElementById('c-sint').value);
-    if(!paciente_id||!seguro_id||!fecha) return setAlert('Paciente, Seguro y Fecha son obligatorios',true);
-    const body={ paciente_id, seguro_id, fecha, hora, sintomas };
-    if(isMAWDY()){ const as=val(document.getElementById('c-asis').value), mv=val(document.getElementById('c-mov').value); if(as) body.asistencia=as.replace(/\D/g,''); if(mv) body.movimiento=mv.replace(/\D/g,''); }
-    const r=await api('/api/cita',{ method:'POST', body: JSON.stringify(body) });
-    document.getElementById('c-id').value=r?.id||''; document.getElementById('btnOrden').disabled=!r?.id;
-    setAlert(`Cita creada #${r?.id||''}`);
-  }catch(e){ setAlert(e?.body?.error||'Error al agendar',true); }
-};
-
-document.getElementById('btnOrden').onclick = ()=>{ const id=val(document.getElementById('c-id').value); if(id) window.open(`/app/orden.html?cita_id=${encodeURIComponent(id)}`,'_blank'); };
 </script>
 </body>
 </html>
