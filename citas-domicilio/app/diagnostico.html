@@ -8,6 +8,7 @@
   <style>
     fieldset{border:1px solid #223257;border-radius:10px;padding:12px;margin-bottom:14px}
     .row{display:flex;gap:10px;flex-wrap:wrap}.row>*{min-width:220px;flex:1}
+    pre{background:#0b1533;color:#dbe4ff;padding:10px;border-radius:8px;white-space:pre-wrap}
   </style>
 </head>
 <body class="app">
@@ -20,6 +21,15 @@
     <legend>Diagnóstico</legend>
     <div class="row">
       <label>ID Cita <input id="cita" inputmode="numeric" placeholder="ID"/></label>
+    </div>
+    <div class="row">
+      <button id="btnVer" class="secondary" type="button">Ver diagnóstico</button>
+    </div>
+    <div id="box" class="row" style="display:none;">
+      <pre id="diagView"></pre>
+    </div>
+    <hr/>
+    <div class="row">
       <label style="flex:2;">Diagnóstico <input id="diag"/></label>
     </div>
     <div class="row">
@@ -40,9 +50,20 @@
 async function api(u,o={}){ const r=await fetch(u,{headers:{'Content-Type':'application/json'},...o}); const ct=r.headers.get('Content-Type')||''; const b=ct.includes('json')?await r.json():await r.text(); if(!r.ok) throw Object.assign(new Error('HTTP '+r.status),{status:r.status,body:b}); return b;}
 function setMsg(t,err){ const el=document.getElementById('msg'); el.textContent=t||''; el.style.display=t?'block':'none'; el.classList.toggle('error',!!err); }
 
+const cita=document.getElementById('cita');
+document.getElementById('btnVer').onclick = async ()=>{
+  try{
+    const id = Number((cita.value||'').trim()); if(!id) return setMsg('Ingresa ID de cita',true);
+    const r = await api('/api/diagnostico?cita_id='+id);
+    document.getElementById('box').style.display='block';
+    document.getElementById('diagView').textContent = r?.data ? JSON.stringify(r.data, null, 2) : '(Sin diagnóstico)';
+    setMsg('');
+  }catch(e){ setMsg(e?.body?.error||'Error al consultar diagnóstico',true); }
+};
+
 document.getElementById('btnGuardar').onclick = async ()=>{
   try{
-    const body={ cita_id:Number((document.getElementById('cita').value||'').trim()), diagnostico:(document.getElementById('diag').value||'').trim(), medicacion_administrada:(document.getElementById('medadm').value||'').trim(), receta:(document.getElementById('receta').value||'').trim(), tratamiento:(document.getElementById('trat').value||'').trim(), observaciones:(document.getElementById('obs').value||'').trim() };
+    const body={ cita_id:Number((cita.value||'').trim()), diagnostico:(document.getElementById('diag').value||'').trim(), medicacion_administrada:(document.getElementById('medadm').value||'').trim(), receta:(document.getElementById('receta').value||'').trim(), tratamiento:(document.getElementById('trat').value||'').trim(), observaciones:(document.getElementById('obs').value||'').trim() };
     if(!body.cita_id) return setMsg('Ingresa ID de cita',true);
     await api('/api/diagnostico',{method:'POST',body:JSON.stringify(body)});
     setMsg('Diagnóstico guardado');
