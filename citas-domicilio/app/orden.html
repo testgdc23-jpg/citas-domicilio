@@ -20,7 +20,7 @@
 <body>
 <div class="bar">
   <button onclick="window.print()">Imprimir / PDF</button>
-  <a href="/">← Inicio</a>
+  <a class="pill" href="/app/index.html">← Menú</a>
 </div>
 
 <div class="sheet">
@@ -37,8 +37,8 @@ async function load(){
   if(!r||!r.ok){ row(t,'Error','No se pudo cargar la cita'); return; }
   const d=r.data; document.getElementById('hdr').textContent=`ORDEN DE ATENCIÓN SEGURO ${ (d.seguro||'').toUpperCase() }`;
 
-  row(t,'CÓDIGO DE SERVICIO','');                     // si luego defines un código, lo traemos desde /api/orden
-  row(t,'TRIAJE MANCHESTER','CÓDIGO AMARILLO','yellow'); // placeholder configurable
+  row(t,'CÓDIGO DE SERVICIO','');                           // si luego defines un código, lo agregamos en el endpoint /api/orden
+  row(t,'TRIAJE MANCHESTER','CÓDIGO AMARILLO','yellow');
   row(t,'SÍNTOMAS', d.sintomas || '');
   row(t,'NOMBRE BENEFICIO/SERVICIO','MÉDICO A DOMICILIO','pink');
 
@@ -46,7 +46,7 @@ async function load(){
   row(t,'NOMBRE PACIENTE', d.paciente_nombre || '');
   row(t,'CÉDULA DEL PACIENTE', d.paciente_ci || '');
 
-  // Datos de domicilio
+  // domicilio/dirección
   row(t,'DIRECCIÓN', d.direccion || '');
   row(t,'REFERENCIA', d.referencia || '');
   row(t,'SECTOR', d.sector || '');
@@ -57,7 +57,6 @@ async function load(){
   row(t,'VALOR COPAGO', Number(d.copago||0).toFixed(2));
   row(t,'TRASLADO AMBULANCIA', 0);
   row(t,'CONTACTO', d.telefono || '');
-
   row(t,'ASISTENCIA (MAWDY)', d.asistencia ?? '');
   row(t,'MOVIMIENTO (MAWDY)', d.movimiento ?? '');
 }
