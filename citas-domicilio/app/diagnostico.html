@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Diagnóstico — Médico</title>
+  <link rel="stylesheet" href="/app/assets/css/styles.css"/>
+  <style>
+    fieldset{border:1px solid #223257;border-radius:10px;padding:12px;margin-bottom:14px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}.row>*{min-width:220px;flex:1}
+  </style>
+</head>
+<body class="app">
+<div class="container">
+  <h1>Diagnóstico — Médico</h1>
+  <p><a class="pill" href="/">← Inicio</a></p>
+  <div id="msg" class="alert"></div>
+
+  <fieldset>
+    <legend>Diagnóstico</legend>
+    <div class="row">
+      <label>ID Cita <input id="cita" inputmode="numeric" placeholder="ID"/></label>
+      <label style="flex:2;">Diagnóstico <input id="diag"/></label>
+    </div>
+    <div class="row">
+      <label>Medicación Administrada <input id="medadm"/></label>
+      <label>Receta <input id="receta"/></label>
+    </div>
+    <div class="row">
+      <label>Tratamiento <input id="trat"/></label>
+      <label>Observaciones <input id="obs"/></label>
+    </div>
+    <div class="row">
+      <button id="btnGuardar" type="button">Guardar</button>
+    </div>
+  </fieldset>
+</div>
+
+<script>
+async function api(u,o={}){ const r=await fetch(u,{headers:{'Content-Type':'application/json'},...o}); const ct=r.headers.get('Content-Type')||''; const b=ct.includes('json')?await r.json():await r.text(); if(!r.ok) throw Object.assign(new Error('HTTP '+r.status),{status:r.status,body:b}); return b;}
+function setMsg(t,err){ const el=document.getElementById('msg'); el.textContent=t||''; el.style.display=t?'block':'none'; el.classList.toggle('error',!!err); }
+
+document.getElementById('btnGuardar').onclick = async ()=>{
+  try{
+    const body={ cita_id:Number(document.getElementById('cita').value||0), diagnostico:document.getElementById('diag').value||'', medicacion_administrada:document.getElementById('medadm').value||'', receta:document.getElementById('receta').value||'', tratamiento:document.getElementById('trat').value||'', observaciones:document.getElementById('obs').value||'' };
+    if(!body.cita_id) return setMsg('Ingresa ID de cita',true);
+    await api('/api/diagnostico',{method:'POST',body:JSON.stringify(body)});
+    setMsg('Diagnóstico guardado');
+  }catch(e){ setMsg(e?.body?.error||'Error al guardar diagnóstico',true); }
+};
+</script>
+</body>
+</html>
